@@ -1,0 +1,61 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Semana {
+  id            Int      @id @default(autoincrement())
+  numero        Int      @unique
+  tipoEsfuerzo  String
+  nombre        String
+  dias          Dia[]
+  ejercicioSemanas EjercicioSemana[]
+
+  @@map("semanas")
+}
+
+model Dia {
+  id          Int        @id @default(autoincrement())
+  numero      Int
+  nombre      String
+  movilidad   String?    @db.Text
+  activacion  String?    @db.Text
+  semanaId    Int
+  semana      Semana     @relation(fields: [semanaId], references: [id], onDelete: Cascade)
+  ejercicios  Ejercicio[]
+
+  @@unique([semanaId, numero])
+  @@map("dias")
+}
+
+model Ejercicio {
+  id              Int               @id @default(autoincrement())
+  nombre          String
+  codigo          String?
+  diaId           Int
+  dia             Dia               @relation(fields: [diaId], references: [id], onDelete: Cascade)
+  ejercicioSemanas EjercicioSemana[]
+
+  @@map("ejercicios")
+}
+
+model EjercicioSemana {
+  id          Int       @id @default(autoincrement())
+  ejercicioId Int
+  semanaId    Int
+  kg          Float?
+  reps        Int
+  series      Int
+  ejercicio   Ejercicio @relation(fields: [ejercicioId], references: [id], onDelete: Cascade)
+  semana      Semana    @relation(fields: [semanaId], references: [id], onDelete: Cascade)
+
+  @@unique([ejercicioId, semanaId])
+  @@map("ejercicio_semanas")
+}
