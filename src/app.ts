@@ -16,7 +16,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Logger de requests
-app.use((req, res, next) => {
+app.use((req, _, next) => {
   logger.info(`${req.method} ${req.path}`);
   next();
 });
@@ -25,7 +25,7 @@ app.use((req, res, next) => {
 app.use('/api', routes);
 
 // Health check
-app.get('/health', (req, res) => {
+app.get('/health', (_, res) => {
   res.json({ status: 'ok', message: 'Servidor funcionando correctamente' });
 });
 
