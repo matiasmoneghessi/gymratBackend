@@ -5,7 +5,7 @@ import { AppError } from '../middleware/errorHandler';
 const semanaService = new SemanaService();
 
 export class SemanaController {
-  async getAll(req: Request, res: Response, next: NextFunction) {
+  async getAll(_: Request, res: Response, next: NextFunction) {
     try {
       const semanas = await semanaService.getAll();
       res.json({
