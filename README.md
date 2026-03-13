@@ -44,6 +44,10 @@ npm install
    NODE_ENV=development
    ```
 
+   **Supabase (red IPv4):** Si usas Supabase y aparece "Not IPv4 compatible" o el error P1001, en el panel de Supabase (Connect to your project) cambia **Method** de "Direct connection" a **"Session pooler"**. Copia la nueva connection string (puerto 6543, host `*.pooler.supabase.com`), sustituye `[YOUR-PASSWORD]` por tu contraseña y añade al final: `?pgbouncer=true&connection_limit=1`. Usa esa URL como `DATABASE_URL` en `.env`. Configurá también `DIRECT_URL` al mismo host y puerto 6543 (no 5432) y `directUrl` en `schema.prisma`.
+
+   **Si `npx prisma migrate deploy` se cuelga:** Con el pooler (IPv4) Prisma no puede ejecutar migraciones (necesita conexión directa). Aplicá el schema a mano: en Supabase → SQL Editor, abrí el archivo `prisma/supabase-apply-schema.sql`, copiá todo el contenido, pegálo en una nueva query y ejecutá. Eso crea/actualiza las tablas para que coincidan con el schema de Prisma.
+
 4. Generar el cliente de Prisma:
 ```bash
 npm run prisma:generate
