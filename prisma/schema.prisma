@@ -6,18 +6,22 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 model Semana {
-  id            Int      @id @default(autoincrement())
-  numero        Int      @unique
-  tipoEsfuerzo  String
-  nombre        String
-  dias          Dia[]
+  id               Int               @id @default(autoincrement())
+  numero           Int
+  tipo_esfuerzo    String
+  nombre           String
+  dias             Dia[]
   ejercicioSemanas EjercicioSemana[]
+  rutinaId         Int
+  rutina           Rutina            @relation(fields: [rutinaId], references: [id], onDelete: Cascade)
 
+  @@unique([rutinaId, numero])
   @@map("semanas")
 }
 
@@ -39,6 +43,7 @@ model Ejercicio {
   id              Int               @id @default(autoincrement())
   nombre          String
   codigo          String?
+  video           String?           @db.Text
   diaId           Int
   dia             Dia               @relation(fields: [diaId], references: [id], onDelete: Cascade)
   ejercicioSemanas EjercicioSemana[]
@@ -58,4 +63,42 @@ model EjercicioSemana {
 
   @@unique([ejercicioId, semanaId])
   @@map("ejercicio_semanas")
+}
+
+model Usuario {
+  id_usuario      Int      @id @default(autoincrement()) @map("id_usuario")
+  usuario         String   @unique
+  password        String?
+  nombre          String
+  nivel           Int
+  email           String   @unique
+  telefono        String?
+  supabaseUserId  String?  @unique @map("supabase_user_id")
+
+  rutinas    Rutina[]
+
+  @@map("usuarios")
+}
+
+model Rutina {
+  id        Int      @id @default(autoincrement())
+  nombre    String
+  usuarioId Int
+
+  usuario      Usuario      @relation(fields: [usuarioId], references: [id_usuario], onDelete: Cascade)
+  semanas      Semana[]
+  shareTokens  ShareToken[]
+
+  @@map("rutinas")
+}
+
+model ShareToken {
+  id        Int      @id @default(autoincrement())
+  token     String   @unique @default(cuid())
+  rutinaId  Int
+  rutina    Rutina   @relation(fields: [rutinaId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@map("share_tokens")
 }
