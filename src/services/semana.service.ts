@@ -26,7 +26,7 @@ export class SemanaService {
   }
 
   async getByNumero(numero: number): Promise<Semana | null> {
-    return prisma.semana.findUnique({
+    return prisma.semana.findFirst({
       where: { numero },
     });
   }
