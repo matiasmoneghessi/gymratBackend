@@ -8,6 +8,6 @@ const usuarioController = new UsuarioController();
 router.get('/me', supabaseAuthMiddleware, (req, res, next) =>
   usuarioController.getCurrent(req, res, next),
 );
-router.get('/:id', (req, res, next) => usuarioController.getById(req, res, next));
+router.get('/:id', supabaseAuthMiddleware, (req, res, next) => usuarioController.getById(req, res, next));
 
 export default router;
