@@ -1,9 +1,53 @@
 import type { Response, NextFunction } from 'express';
+import { z } from 'zod';
 import { RutinaService } from '../services/rutina.service';
 import type { AppError } from '../middleware/errorHandler';
 import type { AuthenticatedRequest } from '../middleware/auth';
 
 const rutinaService = new RutinaService();
+
+const ejercicioSemanaSchema = z.object({
+  semanaNumero: z.number().int().min(1).max(52),
+  kg: z.number().min(0).max(9999).nullable(),
+  reps: z.number().int().min(0).max(999),
+  series: z.number().int().min(0).max(99),
+});
+
+const ejercicioSchema = z.object({
+  nombre: z.string().min(1).max(200),
+  codigo: z.string().max(20).nullable().optional(),
+  ejercicioSemanas: z.array(ejercicioSemanaSchema).min(1).max(52),
+});
+
+const diaSchema = z.object({
+  nombre: z.string().min(1).max(200),
+  movilidad: z.string().max(500).nullable().optional(),
+  activacion: z.string().max(500).nullable().optional(),
+  ejercicios: z.array(ejercicioSchema).min(1).max(50),
+});
+
+const semanaSchema = z.object({
+  nombre: z.string().min(1).max(200),
+  tipo_esfuerzo: z.string().min(1).max(100),
+  dias: z.array(diaSchema).min(1).max(14),
+});
+
+const rutinaBodySchema = z.object({
+  nombre: z.string().min(1).max(200),
+  semanas: z.array(semanaSchema).min(1).max(52),
+});
+
+function parseRutinaBody(body: unknown) {
+  const result = rutinaBodySchema.safeParse(body);
+  if (!result.success) {
+    const error: AppError = new Error(
+      `Datos inválidos: ${result.error.issues.map((i) => i.message).join(', ')}`,
+    );
+    error.statusCode = 400;
+    throw error;
+  }
+  return result.data;
+}
 
 export class RutinaController {
   async list(req: AuthenticatedRequest, res: Response, next: NextFunction) {
@@ -58,24 +102,9 @@ export class RutinaController {
         throw error;
       }
 
-      const { nombre, semanas } = req.body;
+      const data = parseRutinaBody(req.body);
 
-      if (!nombre || typeof nombre !== 'string' || !nombre.trim()) {
-        const error: AppError = new Error('El nombre de la rutina es obligatorio');
-        error.statusCode = 400;
-        throw error;
-      }
-
-      if (!Array.isArray(semanas) || semanas.length === 0) {
-        const error: AppError = new Error('La rutina debe tener al menos una semana');
-        error.statusCode = 400;
-        throw error;
-      }
-
-      const rutina = await rutinaService.create(
-        { nombre: nombre.trim(), semanas },
-        req.supabaseUser,
-      );
+      const rutina = await rutinaService.create(data, req.supabaseUser);
 
       res.status(201).json({ success: true, data: rutina });
     } catch (error) {
@@ -98,21 +127,9 @@ export class RutinaController {
         throw error;
       }
 
-      const { nombre, semanas } = req.body;
+      const data = parseRutinaBody(req.body);
 
-      if (!nombre || typeof nombre !== 'string' || !nombre.trim()) {
-        const error: AppError = new Error('El nombre de la rutina es obligatorio');
-        error.statusCode = 400;
-        throw error;
-      }
-
-      if (!Array.isArray(semanas) || semanas.length === 0) {
-        const error: AppError = new Error('La rutina debe tener al menos una semana');
-        error.statusCode = 400;
-        throw error;
-      }
-
-      const rutina = await rutinaService.update(id, { nombre: nombre.trim(), semanas }, req.supabaseUser);
+      const rutina = await rutinaService.update(id, data, req.supabaseUser);
       if (!rutina) {
         const error: AppError = new Error('Rutina no encontrada');
         error.statusCode = 404;
