@@ -17,7 +17,7 @@ export const errorHandler = (
   logger.error(`Error ${statusCode}: ${message}`, {
     path: req.path,
     method: req.method,
-    error: err,
+    ...(process.env.NODE_ENV !== 'production' && { error: err }),
   });
 
   res.status(statusCode).json({
