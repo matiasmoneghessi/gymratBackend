@@ -27,6 +27,14 @@ router.post('/', supabaseAuthMiddleware, (req, res, next) =>
   rutinaController.create(req, res, next),
 );
 
+router.get('/compartir/:token', tokenLimiter, (req, res, next) =>
+  rutinaController.getByToken(req, res, next),
+);
+
+router.post('/compartir/:token/clonar', supabaseAuthMiddleware, tokenLimiter, (req, res, next) =>
+  rutinaController.cloneFromToken(req, res, next),
+);
+
 router.get('/:id', supabaseAuthMiddleware, (req, res, next) =>
   rutinaController.getById(req, res, next),
 );
@@ -39,17 +47,8 @@ router.delete('/:id', supabaseAuthMiddleware, (req, res, next) =>
   rutinaController.delete(req, res, next),
 );
 
-// Share por token (el GET es público, el POST para clonar requiere auth)
 router.post('/:id/share', supabaseAuthMiddleware, shareLimiter, (req, res, next) =>
   rutinaController.share(req, res, next),
-);
-
-router.get('/compartir/:token', tokenLimiter, (req, res, next) =>
-  rutinaController.getByToken(req, res, next),
-);
-
-router.post('/compartir/:token/clonar', supabaseAuthMiddleware, tokenLimiter, (req, res, next) =>
-  rutinaController.cloneFromToken(req, res, next),
 );
 
 export default router;
