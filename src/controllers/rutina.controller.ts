@@ -9,8 +9,9 @@ const rutinaService = new RutinaService();
 const ejercicioSemanaSchema = z.object({
   semanaNumero: z.number().int().min(1).max(52),
   kg: z.number().min(0).max(9999).nullable(),
-  reps: z.number().int().min(0).max(999),
+  reps: z.number().int().min(0).max(9999),
   series: z.number().int().min(0).max(99),
+  tipo_reps: z.enum(['reps', 'seg']).default('reps'),
 });
 
 const ejercicioSchema = z.object({

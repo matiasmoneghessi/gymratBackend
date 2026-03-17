@@ -7,6 +7,7 @@ export interface CreateEjercicioSemanaInput {
   kg: number | null;
   reps: number;
   series: number;
+  tipo_reps: string;
 }
 
 export interface CreateEjercicioInput {
@@ -136,6 +137,7 @@ export class RutinaService {
       kg: number | null;
       reps: number;
       series: number;
+      tipo_reps: string;
     }[] = [];
 
     for (const semana of rutina.semanas) {
@@ -157,6 +159,7 @@ export class RutinaService {
                   kg: es.kg,
                   reps: es.reps,
                   series: es.series,
+                  tipo_reps: es.tipo_reps ?? 'reps',
                 });
               }
             }
@@ -264,7 +267,7 @@ export class RutinaService {
               .map((es) => {
                 const semanaId = semanaIdByNumero.get(es.semanaNumero);
                 if (!semanaId) return null;
-                return { ejercicioId: ejercicio.id, semanaId, kg: es.kg, reps: es.reps, series: es.series };
+                return { ejercicioId: ejercicio.id, semanaId, kg: es.kg, reps: es.reps, series: es.series, tipo_reps: es.tipo_reps ?? 'reps' };
               })
               .filter((x): x is NonNullable<typeof x> => x !== null);
 
@@ -419,6 +422,7 @@ export class RutinaService {
       kg: number | null;
       reps: number;
       series: number;
+      tipo_reps: string;
     }[] = [];
 
     for (let sIdx = 0; sIdx < rutina.semanas.length; sIdx++) {
@@ -440,6 +444,7 @@ export class RutinaService {
                 kg: es.kg,
                 reps: es.reps,
                 series: es.series,
+                tipo_reps: es.tipo_reps ?? 'reps',
               });
             }
           }

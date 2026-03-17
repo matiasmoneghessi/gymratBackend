@@ -40,12 +40,12 @@ model Dia {
 }
 
 model Ejercicio {
-  id              Int               @id @default(autoincrement())
-  nombre          String
-  codigo          String?
-  video           String?           @db.Text
-  diaId           Int
-  dia             Dia               @relation(fields: [diaId], references: [id], onDelete: Cascade)
+  id               Int               @id @default(autoincrement())
+  nombre           String
+  codigo           String?
+  video            String?           @db.Text
+  diaId            Int
+  dia              Dia               @relation(fields: [diaId], references: [id], onDelete: Cascade)
   ejercicioSemanas EjercicioSemana[]
 
   @@map("ejercicios")
@@ -58,6 +58,7 @@ model EjercicioSemana {
   kg          Float?
   reps        Int
   series      Int
+  tipo_reps   String    @default("reps")
   ejercicio   Ejercicio @relation(fields: [ejercicioId], references: [id], onDelete: Cascade)
   semana      Semana    @relation(fields: [semanaId], references: [id], onDelete: Cascade)
 
@@ -95,10 +96,10 @@ model Rutina {
 model ShareToken {
   id        Int      @id @default(autoincrement())
   token     String   @unique @default(cuid())
-  rutinaId  Int
+  rutinaId  Int      @map("rutina_id")
   rutina    Rutina   @relation(fields: [rutinaId], references: [id], onDelete: Cascade)
-  expiresAt DateTime
-  createdAt DateTime @default(now())
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
 
   @@map("share_tokens")
 }
