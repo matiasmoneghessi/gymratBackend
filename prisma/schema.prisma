@@ -39,14 +39,25 @@ model Dia {
   @@map("dias")
 }
 
+model CatalogoEjercicio {
+  id         Int         @id @default(autoincrement())
+  nombre     String      @unique
+  ejercicios Ejercicio[]
+
+  @@map("catalogo_ejercicios")
+}
+
 model Ejercicio {
-  id               Int               @id @default(autoincrement())
-  nombre           String
-  codigo           String?
-  video            String?           @db.Text
-  diaId            Int
-  dia              Dia               @relation(fields: [diaId], references: [id], onDelete: Cascade)
-  ejercicioSemanas EjercicioSemana[]
+  id                   Int                @id @default(autoincrement())
+  nombre               String
+  codigo               String?
+  video                String?            @db.Text
+  imagen               String?            @db.Text
+  diaId                Int
+  catalogoEjercicioId  Int?
+  dia                  Dia                @relation(fields: [diaId], references: [id], onDelete: Cascade)
+  catalogoEjercicio    CatalogoEjercicio? @relation(fields: [catalogoEjercicioId], references: [id])
+  ejercicioSemanas     EjercicioSemana[]
 
   @@map("ejercicios")
 }
