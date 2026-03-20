@@ -33,13 +33,25 @@ $$;
 ALTER TABLE "ejercicio_usuario" DROP COLUMN IF EXISTS "video";
 ALTER TABLE "ejercicio_usuario" DROP COLUMN IF EXISTS "imagen";
 
--- 5. Agregar columna catalogoEjercicioId si no existe
-ALTER TABLE "ejercicio_usuario" ADD COLUMN IF NOT EXISTS "catalogoEjercicioId" INTEGER;
+-- 5. Agregar columna catalogo_ejercicio_id si no existe
+--    (renombrar de catalogoEjercicioId si aún existe con el nombre viejo)
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_name = 'ejercicio_usuario' AND column_name = 'catalogoEjercicioId'
+  ) THEN
+    ALTER TABLE "ejercicio_usuario" RENAME COLUMN "catalogoEjercicioId" TO "catalogo_ejercicio_id";
+  ELSE
+    ALTER TABLE "ejercicio_usuario" ADD COLUMN IF NOT EXISTS "catalogo_ejercicio_id" INTEGER;
+  END IF;
+END;
+$$;
 
 -- 6. Crear tabla serie_detalles si no existe
 CREATE TABLE IF NOT EXISTS "serie_detalles" (
   "id" SERIAL NOT NULL,
-  "ejercicioSemanaId" INTEGER NOT NULL,
+  "ejercicio_semana_id" INTEGER NOT NULL,
   "numero_serie" INTEGER NOT NULL,
   "kg" DOUBLE PRECISION,
   "reps" INTEGER,
@@ -47,18 +59,26 @@ CREATE TABLE IF NOT EXISTS "serie_detalles" (
   CONSTRAINT "serie_detalles_pkey" PRIMARY KEY ("id")
 );
 
-CREATE UNIQUE INDEX IF NOT EXISTS "serie_detalles_ejercicioSemanaId_numero_serie_key"
-  ON "serie_detalles"("ejercicioSemanaId", "numero_serie");
+CREATE UNIQUE INDEX IF NOT EXISTS "serie_detalles_ejercicio_semana_id_numero_serie_key"
+  ON "serie_detalles"("ejercicio_semana_id", "numero_serie");
 
 DO $$
 BEGIN
+  -- Renombrar columna si aún existe con el nombre viejo
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_name = 'serie_detalles' AND column_name = 'ejercicioSemanaId'
+  ) THEN
+    ALTER TABLE "serie_detalles" RENAME COLUMN "ejercicioSemanaId" TO "ejercicio_semana_id";
+  END IF;
+
   IF NOT EXISTS (
     SELECT 1 FROM information_schema.table_constraints
-    WHERE constraint_name = 'serie_detalles_ejercicioSemanaId_fkey'
+    WHERE constraint_name = 'serie_detalles_ejercicio_semana_id_fkey'
   ) THEN
     ALTER TABLE "serie_detalles"
-      ADD CONSTRAINT "serie_detalles_ejercicioSemanaId_fkey"
-      FOREIGN KEY ("ejercicioSemanaId")
+      ADD CONSTRAINT "serie_detalles_ejercicio_semana_id_fkey"
+      FOREIGN KEY ("ejercicio_semana_id")
       REFERENCES "ejercicio_semanas"("id")
       ON DELETE CASCADE ON UPDATE CASCADE;
   END IF;
@@ -70,11 +90,11 @@ DO $$
 BEGIN
   IF NOT EXISTS (
     SELECT 1 FROM information_schema.table_constraints
-    WHERE constraint_name = 'ejercicio_usuario_catalogoEjercicioId_fkey'
+    WHERE constraint_name = 'ejercicio_usuario_catalogo_ejercicio_id_fkey'
   ) THEN
     ALTER TABLE "ejercicio_usuario"
-      ADD CONSTRAINT "ejercicio_usuario_catalogoEjercicioId_fkey"
-      FOREIGN KEY ("catalogoEjercicioId")
+      ADD CONSTRAINT "ejercicio_usuario_catalogo_ejercicio_id_fkey"
+      FOREIGN KEY ("catalogo_ejercicio_id")
       REFERENCES "catalogo_ejercicios"("id")
       ON DELETE SET NULL ON UPDATE CASCADE;
   END IF;

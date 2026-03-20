@@ -18,7 +18,7 @@ model Semana {
   nombre           String
   dias             Dia[]
   ejercicioSemanas EjercicioSemana[]
-  rutinaId         Int
+  rutinaId         Int               @map("rutina_id")
   rutina           Rutina            @relation(fields: [rutinaId], references: [id], onDelete: Cascade)
 
   @@unique([rutinaId, numero])
@@ -31,7 +31,7 @@ model Dia {
   nombre      String
   movilidad   String?            @db.Text
   activacion  String?            @db.Text
-  semanaId    Int
+  semanaId    Int                @map("semana_id")
   semana      Semana             @relation(fields: [semanaId], references: [id], onDelete: Cascade)
   ejercicios  EjercicioUsuario[]
 
@@ -51,22 +51,22 @@ model CatalogoEjercicio {
 }
 
 model EjercicioUsuario {
-  id                   Int                @id @default(autoincrement())
-  nombre               String
-  codigo               String?
-  diaId                Int
-  catalogoEjercicioId  Int?
-  dia                  Dia                @relation(fields: [diaId], references: [id], onDelete: Cascade)
-  catalogoEjercicio    CatalogoEjercicio? @relation(fields: [catalogoEjercicioId], references: [id])
-  ejercicioSemanas     EjercicioSemana[]
+  id                  Int                @id @default(autoincrement())
+  nombre              String
+  codigo              String?
+  diaId               Int                @map("dia_id")
+  catalogoEjercicioId Int?               @map("catalogo_ejercicio_id")
+  dia                 Dia                @relation(fields: [diaId], references: [id], onDelete: Cascade)
+  catalogoEjercicio   CatalogoEjercicio? @relation(fields: [catalogoEjercicioId], references: [id])
+  ejercicioSemanas    EjercicioSemana[]
 
   @@map("ejercicio_usuario")
 }
 
 model EjercicioSemana {
   id            Int              @id @default(autoincrement())
-  ejercicioId   Int
-  semanaId      Int
+  ejercicioId   Int              @map("ejercicio_id")
+  semanaId      Int              @map("semana_id")
   kg            Float?
   reps          Int
   series        Int
@@ -81,7 +81,7 @@ model EjercicioSemana {
 
 model SerieDetalle {
   id                Int             @id @default(autoincrement())
-  ejercicioSemanaId Int
+  ejercicioSemanaId Int             @map("ejercicio_semana_id")
   numero_serie      Int
   kg                Float?
   reps              Int?
@@ -92,16 +92,16 @@ model SerieDetalle {
 }
 
 model Usuario {
-  id_usuario      Int      @id @default(autoincrement()) @map("id_usuario")
-  usuario         String   @unique
-  password        String?
-  nombre          String
-  nivel           Int
-  email           String   @unique
-  telefono        String?
-  supabaseUserId  String?  @unique @map("supabase_user_id")
+  id_usuario     Int      @id @default(autoincrement()) @map("id_usuario")
+  usuario        String   @unique
+  password       String?
+  nombre         String
+  nivel          Int
+  email          String   @unique
+  telefono       String?
+  supabaseUserId String?  @unique @map("supabase_user_id")
 
-  rutinas    Rutina[]
+  rutinas Rutina[]
 
   @@map("usuarios")
 }
@@ -109,11 +109,11 @@ model Usuario {
 model Rutina {
   id        Int      @id @default(autoincrement())
   nombre    String
-  usuarioId Int
+  usuarioId Int      @map("usuario_id")
 
-  usuario      Usuario      @relation(fields: [usuarioId], references: [id_usuario], onDelete: Cascade)
-  semanas      Semana[]
-  shareTokens  ShareToken[]
+  usuario     Usuario      @relation(fields: [usuarioId], references: [id_usuario], onDelete: Cascade)
+  semanas     Semana[]
+  shareTokens ShareToken[]
 
   @@map("rutinas")
 }
