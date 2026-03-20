@@ -26,52 +26,53 @@ model Semana {
 }
 
 model Dia {
-  id          Int        @id @default(autoincrement())
+  id          Int                @id @default(autoincrement())
   numero      Int
   nombre      String
-  movilidad   String?    @db.Text
-  activacion  String?    @db.Text
+  movilidad   String?            @db.Text
+  activacion  String?            @db.Text
   semanaId    Int
-  semana      Semana     @relation(fields: [semanaId], references: [id], onDelete: Cascade)
-  ejercicios  Ejercicio[]
+  semana      Semana             @relation(fields: [semanaId], references: [id], onDelete: Cascade)
+  ejercicios  EjercicioUsuario[]
 
   @@unique([semanaId, numero])
   @@map("dias")
 }
 
 model CatalogoEjercicio {
-  id         Int         @id @default(autoincrement())
-  nombre     String      @unique
-  ejercicios Ejercicio[]
+  id          Int                @id @default(autoincrement())
+  nombre      String             @unique
+  descripcion String?            @db.Text
+  video       String?            @db.Text
+  imagen      String?            @db.Text
+  ejercicios  EjercicioUsuario[]
 
   @@map("catalogo_ejercicios")
 }
 
-model Ejercicio {
+model EjercicioUsuario {
   id                   Int                @id @default(autoincrement())
   nombre               String
   codigo               String?
-  video                String?            @db.Text
-  imagen               String?            @db.Text
   diaId                Int
   catalogoEjercicioId  Int?
   dia                  Dia                @relation(fields: [diaId], references: [id], onDelete: Cascade)
   catalogoEjercicio    CatalogoEjercicio? @relation(fields: [catalogoEjercicioId], references: [id])
   ejercicioSemanas     EjercicioSemana[]
 
-  @@map("ejercicios")
+  @@map("ejercicio_usuario")
 }
 
 model EjercicioSemana {
-  id          Int       @id @default(autoincrement())
+  id          Int              @id @default(autoincrement())
   ejercicioId Int
   semanaId    Int
   kg          Float?
   reps        Int
   series      Int
-  tipo_reps   String    @default("reps")
-  ejercicio   Ejercicio @relation(fields: [ejercicioId], references: [id], onDelete: Cascade)
-  semana      Semana    @relation(fields: [semanaId], references: [id], onDelete: Cascade)
+  tipo_reps   String           @default("reps")
+  ejercicio   EjercicioUsuario @relation(fields: [ejercicioId], references: [id], onDelete: Cascade)
+  semana      Semana           @relation(fields: [semanaId], references: [id], onDelete: Cascade)
 
   @@unique([ejercicioId, semanaId])
   @@map("ejercicio_semanas")

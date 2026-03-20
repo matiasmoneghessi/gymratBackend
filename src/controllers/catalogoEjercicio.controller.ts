@@ -38,15 +38,32 @@ export class CatalogoEjercicioController {
 
   async create(req: Request, res: Response, next: NextFunction) {
     try {
-      const { nombre } = req.body;
+      const { nombre, descripcion, video, imagen } = req.body;
       if (!nombre || typeof nombre !== 'string') {
         const error: AppError = new Error('El campo nombre es requerido');
         error.statusCode = 400;
         throw error;
       }
 
-      const data = await catalogoService.create(nombre.trim());
+      const data = await catalogoService.create({ nombre: nombre.trim(), descripcion, video, imagen });
       res.status(201).json({ success: true, data });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async update(req: Request, res: Response, next: NextFunction) {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        const error: AppError = new Error('ID inválido');
+        error.statusCode = 400;
+        throw error;
+      }
+
+      const { nombre, descripcion, video, imagen } = req.body;
+      const data = await catalogoService.update(id, { nombre, descripcion, video, imagen });
+      res.json({ success: true, data });
     } catch (error) {
       next(error);
     }

@@ -1,20 +1,24 @@
 -- Script para aplicar el schema de Prisma en Supabase cuando migrate deploy se cuelga (pooler IPv4).
 -- Ejecutá todo este archivo en: Supabase → SQL Editor → New query → Pegar → Run.
--- ATENCIÓN: Borra las tablas existentes (semanas, dias, ejercicios, ejercicio_semanas, rutinas, usuarios). Hacé backup si tenés datos.
+-- ATENCIÓN: Borra las tablas existentes. Hacé backup si tenés datos.
 
 -- Eliminar tablas en orden por FKs
 DROP TABLE IF EXISTS "ejercicio_semanas" CASCADE;
-DROP TABLE IF EXISTS "ejercicios" CASCADE;
+DROP TABLE IF EXISTS "ejercicio_usuario" CASCADE;
 DROP TABLE IF EXISTS "catalogo_ejercicios" CASCADE;
 DROP TABLE IF EXISTS "dias" CASCADE;
 DROP TABLE IF EXISTS "semanas" CASCADE;
 DROP TABLE IF EXISTS "rutinas" CASCADE;
 DROP TABLE IF EXISTS "usuarios" CASCADE;
+DROP TABLE IF EXISTS "share_tokens" CASCADE;
 
 -- Crear tablas en orden
 CREATE TABLE "catalogo_ejercicios" (
   "id" SERIAL NOT NULL,
   "nombre" TEXT NOT NULL,
+  "descripcion" TEXT,
+  "video" TEXT,
+  "imagen" TEXT,
 
   CONSTRAINT "catalogo_ejercicios_pkey" PRIMARY KEY ("id")
 );
@@ -22,11 +26,12 @@ CREATE TABLE "catalogo_ejercicios" (
 CREATE TABLE "usuarios" (
   "id_usuario" SERIAL NOT NULL,
   "usuario" TEXT NOT NULL,
-  "password" TEXT NOT NULL,
+  "password" TEXT,
   "nombre" TEXT NOT NULL,
   "nivel" INTEGER NOT NULL,
   "email" TEXT NOT NULL,
   "telefono" TEXT,
+  "supabase_user_id" TEXT,
 
   CONSTRAINT "usuarios_pkey" PRIMARY KEY ("id_usuario")
 );
@@ -37,6 +42,16 @@ CREATE TABLE "rutinas" (
   "usuarioId" INTEGER NOT NULL,
 
   CONSTRAINT "rutinas_pkey" PRIMARY KEY ("id")
+);
+
+CREATE TABLE "share_tokens" (
+  "id" SERIAL NOT NULL,
+  "token" TEXT NOT NULL,
+  "rutina_id" INTEGER NOT NULL,
+  "expires_at" TIMESTAMPTZ NOT NULL,
+  "created_at" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+
+  CONSTRAINT "share_tokens_pkey" PRIMARY KEY ("id")
 );
 
 CREATE TABLE "semanas" (
@@ -60,16 +75,14 @@ CREATE TABLE "dias" (
   CONSTRAINT "dias_pkey" PRIMARY KEY ("id")
 );
 
-CREATE TABLE "ejercicios" (
+CREATE TABLE "ejercicio_usuario" (
   "id" SERIAL NOT NULL,
   "nombre" TEXT NOT NULL,
   "codigo" TEXT,
-  "video" TEXT,
-  "imagen" TEXT,
   "diaId" INTEGER NOT NULL,
   "catalogoEjercicioId" INTEGER,
 
-  CONSTRAINT "ejercicios_pkey" PRIMARY KEY ("id")
+  CONSTRAINT "ejercicio_usuario_pkey" PRIMARY KEY ("id")
 );
 
 CREATE TABLE "ejercicio_semanas" (
@@ -79,6 +92,7 @@ CREATE TABLE "ejercicio_semanas" (
   "kg" DOUBLE PRECISION,
   "reps" INTEGER NOT NULL,
   "series" INTEGER NOT NULL,
+  "tipo_reps" TEXT NOT NULL DEFAULT 'reps',
 
   CONSTRAINT "ejercicio_semanas_pkey" PRIMARY KEY ("id")
 );
@@ -87,15 +101,18 @@ CREATE TABLE "ejercicio_semanas" (
 CREATE UNIQUE INDEX "catalogo_ejercicios_nombre_key" ON "catalogo_ejercicios"("nombre");
 CREATE UNIQUE INDEX "usuarios_usuario_key" ON "usuarios"("usuario");
 CREATE UNIQUE INDEX "usuarios_email_key" ON "usuarios"("email");
+CREATE UNIQUE INDEX "usuarios_supabase_user_id_key" ON "usuarios"("supabase_user_id");
+CREATE UNIQUE INDEX "share_tokens_token_key" ON "share_tokens"("token");
 CREATE UNIQUE INDEX "semanas_rutinaId_numero_key" ON "semanas"("rutinaId", "numero");
 CREATE UNIQUE INDEX "dias_semanaId_numero_key" ON "dias"("semanaId", "numero");
 CREATE UNIQUE INDEX "ejercicio_semanas_ejercicioId_semanaId_key" ON "ejercicio_semanas"("ejercicioId", "semanaId");
 
 -- Foreign keys
 ALTER TABLE "rutinas" ADD CONSTRAINT "rutinas_usuarioId_fkey" FOREIGN KEY ("usuarioId") REFERENCES "usuarios"("id_usuario") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "share_tokens" ADD CONSTRAINT "share_tokens_rutina_id_fkey" FOREIGN KEY ("rutina_id") REFERENCES "rutinas"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 ALTER TABLE "semanas" ADD CONSTRAINT "semanas_rutinaId_fkey" FOREIGN KEY ("rutinaId") REFERENCES "rutinas"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 ALTER TABLE "dias" ADD CONSTRAINT "dias_semanaId_fkey" FOREIGN KEY ("semanaId") REFERENCES "semanas"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-ALTER TABLE "ejercicios" ADD CONSTRAINT "ejercicios_diaId_fkey" FOREIGN KEY ("diaId") REFERENCES "dias"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-ALTER TABLE "ejercicios" ADD CONSTRAINT "ejercicios_catalogoEjercicioId_fkey" FOREIGN KEY ("catalogoEjercicioId") REFERENCES "catalogo_ejercicios"("id") ON DELETE SET NULL ON UPDATE CASCADE;
-ALTER TABLE "ejercicio_semanas" ADD CONSTRAINT "ejercicio_semanas_ejercicioId_fkey" FOREIGN KEY ("ejercicioId") REFERENCES "ejercicios"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "ejercicio_usuario" ADD CONSTRAINT "ejercicio_usuario_diaId_fkey" FOREIGN KEY ("diaId") REFERENCES "dias"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "ejercicio_usuario" ADD CONSTRAINT "ejercicio_usuario_catalogoEjercicioId_fkey" FOREIGN KEY ("catalogoEjercicioId") REFERENCES "catalogo_ejercicios"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "ejercicio_semanas" ADD CONSTRAINT "ejercicio_semanas_ejercicioId_fkey" FOREIGN KEY ("ejercicioId") REFERENCES "ejercicio_usuario"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 ALTER TABLE "ejercicio_semanas" ADD CONSTRAINT "ejercicio_semanas_semanaId_fkey" FOREIGN KEY ("semanaId") REFERENCES "semanas"("id") ON DELETE CASCADE ON UPDATE CASCADE;

@@ -1,10 +1,10 @@
 import prisma from '../utils/prisma';
-import { Ejercicio } from '@prisma/client';
+import { EjercicioUsuario } from '@prisma/client';
 
-export class EjercicioService {
-  async getAll(diaId?: number): Promise<Ejercicio[]> {
+export class EjercicioUsuarioService {
+  async getAll(diaId?: number): Promise<EjercicioUsuario[]> {
     const where = diaId ? { diaId } : {};
-    return prisma.ejercicio.findMany({
+    return prisma.ejercicioUsuario.findMany({
       where,
       include: {
         dia: {
@@ -12,6 +12,7 @@ export class EjercicioService {
             semana: true,
           },
         },
+        catalogoEjercicio: true,
         ejercicioSemanas: {
           include: {
             semana: true,
@@ -27,8 +28,8 @@ export class EjercicioService {
     });
   }
 
-  async getById(id: number): Promise<Ejercicio | null> {
-    return prisma.ejercicio.findUnique({
+  async getById(id: number): Promise<EjercicioUsuario | null> {
+    return prisma.ejercicioUsuario.findUnique({
       where: { id },
       include: {
         dia: {
@@ -36,6 +37,7 @@ export class EjercicioService {
             semana: true,
           },
         },
+        catalogoEjercicio: true,
         ejercicioSemanas: {
           include: {
             semana: true,

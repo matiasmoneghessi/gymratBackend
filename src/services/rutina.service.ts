@@ -247,7 +247,7 @@ export class RutinaService {
         });
 
         for (const ejInput of diaInput.ejercicios) {
-          const ejercicio = await prisma.ejercicio.create({
+          const ejercicio = await prisma.ejercicioUsuario.create({
             data: {
               diaId: dia.id,
               nombre: ejInput.nombre,

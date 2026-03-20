@@ -1,4 +1,4 @@
--- Migración incremental: agrega catalogo_ejercicios, imagen y FK en ejercicios.
+-- Migración incremental: renombra ejercicios → ejercicio_usuario, mueve video/imagen a catalogo_ejercicios.
 -- Ejecutá este archivo en: Supabase → SQL Editor → New query → Pegar → Run.
 -- NO borra datos existentes.
 
@@ -6,27 +6,45 @@
 CREATE TABLE IF NOT EXISTS "catalogo_ejercicios" (
   "id" SERIAL NOT NULL,
   "nombre" TEXT NOT NULL,
+  "video" TEXT,
+  "imagen" TEXT,
 
   CONSTRAINT "catalogo_ejercicios_pkey" PRIMARY KEY ("id")
 );
 
 CREATE UNIQUE INDEX IF NOT EXISTS "catalogo_ejercicios_nombre_key" ON "catalogo_ejercicios"("nombre");
 
--- 2. Agregar columna imagen a ejercicios si no existe
-ALTER TABLE "ejercicios" ADD COLUMN IF NOT EXISTS "imagen" TEXT;
+-- 2. Agregar columnas a catalogo_ejercicios si no existen
+ALTER TABLE "catalogo_ejercicios" ADD COLUMN IF NOT EXISTS "descripcion" TEXT;
+ALTER TABLE "catalogo_ejercicios" ADD COLUMN IF NOT EXISTS "video" TEXT;
+ALTER TABLE "catalogo_ejercicios" ADD COLUMN IF NOT EXISTS "imagen" TEXT;
 
--- 3. Agregar columna catalogoEjercicioId a ejercicios si no existe
-ALTER TABLE "ejercicios" ADD COLUMN IF NOT EXISTS "catalogoEjercicioId" INTEGER;
+-- 3. Renombrar tabla ejercicios → ejercicio_usuario (si aún no fue renombrada)
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'ejercicios')
+     AND NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'ejercicio_usuario') THEN
+    ALTER TABLE "ejercicios" RENAME TO "ejercicio_usuario";
+  END IF;
+END;
+$$;
 
--- 4. Agregar FK si no existe
+-- 4. Quitar columnas video e imagen de ejercicio_usuario si existen
+ALTER TABLE "ejercicio_usuario" DROP COLUMN IF EXISTS "video";
+ALTER TABLE "ejercicio_usuario" DROP COLUMN IF EXISTS "imagen";
+
+-- 5. Agregar columna catalogoEjercicioId si no existe
+ALTER TABLE "ejercicio_usuario" ADD COLUMN IF NOT EXISTS "catalogoEjercicioId" INTEGER;
+
+-- 6. Agregar FK de ejercicio_usuario → catalogo_ejercicios si no existe
 DO $$
 BEGIN
   IF NOT EXISTS (
     SELECT 1 FROM information_schema.table_constraints
-    WHERE constraint_name = 'ejercicios_catalogoEjercicioId_fkey'
+    WHERE constraint_name = 'ejercicio_usuario_catalogoEjercicioId_fkey'
   ) THEN
-    ALTER TABLE "ejercicios"
-      ADD CONSTRAINT "ejercicios_catalogoEjercicioId_fkey"
+    ALTER TABLE "ejercicio_usuario"
+      ADD CONSTRAINT "ejercicio_usuario_catalogoEjercicioId_fkey"
       FOREIGN KEY ("catalogoEjercicioId")
       REFERENCES "catalogo_ejercicios"("id")
       ON DELETE SET NULL ON UPDATE CASCADE;
