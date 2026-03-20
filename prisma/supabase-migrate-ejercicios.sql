@@ -36,7 +36,36 @@ ALTER TABLE "ejercicio_usuario" DROP COLUMN IF EXISTS "imagen";
 -- 5. Agregar columna catalogoEjercicioId si no existe
 ALTER TABLE "ejercicio_usuario" ADD COLUMN IF NOT EXISTS "catalogoEjercicioId" INTEGER;
 
--- 6. Agregar FK de ejercicio_usuario → catalogo_ejercicios si no existe
+-- 6. Crear tabla serie_detalles si no existe
+CREATE TABLE IF NOT EXISTS "serie_detalles" (
+  "id" SERIAL NOT NULL,
+  "ejercicioSemanaId" INTEGER NOT NULL,
+  "numero_serie" INTEGER NOT NULL,
+  "kg" DOUBLE PRECISION,
+  "reps" INTEGER,
+
+  CONSTRAINT "serie_detalles_pkey" PRIMARY KEY ("id")
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS "serie_detalles_ejercicioSemanaId_numero_serie_key"
+  ON "serie_detalles"("ejercicioSemanaId", "numero_serie");
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.table_constraints
+    WHERE constraint_name = 'serie_detalles_ejercicioSemanaId_fkey'
+  ) THEN
+    ALTER TABLE "serie_detalles"
+      ADD CONSTRAINT "serie_detalles_ejercicioSemanaId_fkey"
+      FOREIGN KEY ("ejercicioSemanaId")
+      REFERENCES "ejercicio_semanas"("id")
+      ON DELETE CASCADE ON UPDATE CASCADE;
+  END IF;
+END;
+$$;
+
+-- 7. Agregar FK de ejercicio_usuario → catalogo_ejercicios si no existe
 DO $$
 BEGIN
   IF NOT EXISTS (

@@ -64,18 +64,31 @@ model EjercicioUsuario {
 }
 
 model EjercicioSemana {
-  id          Int              @id @default(autoincrement())
-  ejercicioId Int
-  semanaId    Int
-  kg          Float?
-  reps        Int
-  series      Int
-  tipo_reps   String           @default("reps")
-  ejercicio   EjercicioUsuario @relation(fields: [ejercicioId], references: [id], onDelete: Cascade)
-  semana      Semana           @relation(fields: [semanaId], references: [id], onDelete: Cascade)
+  id            Int              @id @default(autoincrement())
+  ejercicioId   Int
+  semanaId      Int
+  kg            Float?
+  reps          Int
+  series        Int
+  tipo_reps     String           @default("reps")
+  ejercicio     EjercicioUsuario @relation(fields: [ejercicioId], references: [id], onDelete: Cascade)
+  semana        Semana           @relation(fields: [semanaId], references: [id], onDelete: Cascade)
+  serieDetalles SerieDetalle[]
 
   @@unique([ejercicioId, semanaId])
   @@map("ejercicio_semanas")
+}
+
+model SerieDetalle {
+  id                Int             @id @default(autoincrement())
+  ejercicioSemanaId Int
+  numero_serie      Int
+  kg                Float?
+  reps              Int?
+  ejercicioSemana   EjercicioSemana @relation(fields: [ejercicioSemanaId], references: [id], onDelete: Cascade)
+
+  @@unique([ejercicioSemanaId, numero_serie])
+  @@map("serie_detalles")
 }
 
 model Usuario {

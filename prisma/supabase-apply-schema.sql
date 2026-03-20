@@ -3,6 +3,7 @@
 -- ATENCIÓN: Borra las tablas existentes. Hacé backup si tenés datos.
 
 -- Eliminar tablas en orden por FKs
+DROP TABLE IF EXISTS "serie_detalles" CASCADE;
 DROP TABLE IF EXISTS "ejercicio_semanas" CASCADE;
 DROP TABLE IF EXISTS "ejercicio_usuario" CASCADE;
 DROP TABLE IF EXISTS "catalogo_ejercicios" CASCADE;
@@ -97,6 +98,16 @@ CREATE TABLE "ejercicio_semanas" (
   CONSTRAINT "ejercicio_semanas_pkey" PRIMARY KEY ("id")
 );
 
+CREATE TABLE "serie_detalles" (
+  "id" SERIAL NOT NULL,
+  "ejercicioSemanaId" INTEGER NOT NULL,
+  "numero_serie" INTEGER NOT NULL,
+  "kg" DOUBLE PRECISION,
+  "reps" INTEGER,
+
+  CONSTRAINT "serie_detalles_pkey" PRIMARY KEY ("id")
+);
+
 -- Índices únicos
 CREATE UNIQUE INDEX "catalogo_ejercicios_nombre_key" ON "catalogo_ejercicios"("nombre");
 CREATE UNIQUE INDEX "usuarios_usuario_key" ON "usuarios"("usuario");
@@ -106,6 +117,7 @@ CREATE UNIQUE INDEX "share_tokens_token_key" ON "share_tokens"("token");
 CREATE UNIQUE INDEX "semanas_rutinaId_numero_key" ON "semanas"("rutinaId", "numero");
 CREATE UNIQUE INDEX "dias_semanaId_numero_key" ON "dias"("semanaId", "numero");
 CREATE UNIQUE INDEX "ejercicio_semanas_ejercicioId_semanaId_key" ON "ejercicio_semanas"("ejercicioId", "semanaId");
+CREATE UNIQUE INDEX "serie_detalles_ejercicioSemanaId_numero_serie_key" ON "serie_detalles"("ejercicioSemanaId", "numero_serie");
 
 -- Foreign keys
 ALTER TABLE "rutinas" ADD CONSTRAINT "rutinas_usuarioId_fkey" FOREIGN KEY ("usuarioId") REFERENCES "usuarios"("id_usuario") ON DELETE CASCADE ON UPDATE CASCADE;
@@ -116,3 +128,4 @@ ALTER TABLE "ejercicio_usuario" ADD CONSTRAINT "ejercicio_usuario_diaId_fkey" FO
 ALTER TABLE "ejercicio_usuario" ADD CONSTRAINT "ejercicio_usuario_catalogoEjercicioId_fkey" FOREIGN KEY ("catalogoEjercicioId") REFERENCES "catalogo_ejercicios"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 ALTER TABLE "ejercicio_semanas" ADD CONSTRAINT "ejercicio_semanas_ejercicioId_fkey" FOREIGN KEY ("ejercicioId") REFERENCES "ejercicio_usuario"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 ALTER TABLE "ejercicio_semanas" ADD CONSTRAINT "ejercicio_semanas_semanaId_fkey" FOREIGN KEY ("semanaId") REFERENCES "semanas"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "serie_detalles" ADD CONSTRAINT "serie_detalles_ejercicioSemanaId_fkey" FOREIGN KEY ("ejercicioSemanaId") REFERENCES "ejercicio_semanas"("id") ON DELETE CASCADE ON UPDATE CASCADE;

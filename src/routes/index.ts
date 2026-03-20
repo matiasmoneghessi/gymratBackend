@@ -6,6 +6,7 @@ import ejercicioSemanaRoutes from './ejercicioSemana.routes';
 import usuarioRoutes from './usuario.routes';
 import rutinaRoutes from './rutina.routes';
 import catalogoEjercicioRoutes from './catalogoEjercicio.routes';
+import serieDetalleRoutes from './serieDetalle.routes';
 
 const router = Router();
 
@@ -16,5 +17,6 @@ router.use('/ejercicios', ejercicioRoutes);
 router.use('/ejercicio-semana', ejercicioSemanaRoutes);
 router.use('/usuarios', usuarioRoutes);
 router.use('/catalogo-ejercicios', catalogoEjercicioRoutes);
+router.use('/serie-detalles', serieDetalleRoutes);
 
 export default router;
