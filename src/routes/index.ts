@@ -5,14 +5,27 @@ import ejercicioRoutes from './ejercicio.routes';
 import ejercicioSemanaRoutes from './ejercicioSemana.routes';
 import usuarioRoutes from './usuario.routes';
 import rutinaRoutes from './rutina.routes';
+import catalogoEjercicioRoutes from './catalogoEjercicio.routes';
+import serieDetalleRoutes from './serieDetalle.routes';
+import sesionRoutes from './sesion.routes';
+import { supabaseAuthMiddleware } from '../middleware/auth';
+import { EjercicioUsuarioController } from '../controllers/ejercicioUsuario.controller';
 
 const router = Router();
+const ejercicioUsuarioController = new EjercicioUsuarioController();
 
 router.use('/rutinas', rutinaRoutes);
 router.use('/semanas', semanaRoutes);
 router.use('/dias', diaRoutes);
 router.use('/ejercicios', ejercicioRoutes);
 router.use('/ejercicio-semana', ejercicioSemanaRoutes);
+router.use('/ejercicio-semanas', ejercicioSemanaRoutes);
 router.use('/usuarios', usuarioRoutes);
+router.use('/catalogo-ejercicios', catalogoEjercicioRoutes);
+router.use('/serie-detalles', serieDetalleRoutes);
+router.use('/sesiones', sesionRoutes);
+router.get('/ejercicios-rutina/:rutinaId', supabaseAuthMiddleware, (req, res, next) =>
+  ejercicioUsuarioController.getByRutinaId(req, res, next),
+);
 
 export default router;

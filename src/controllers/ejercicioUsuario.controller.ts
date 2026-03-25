@@ -1,10 +1,10 @@
 import { Request, Response, NextFunction } from 'express';
-import { EjercicioService } from '../services/ejercicio.service';
+import { EjercicioUsuarioService } from '../services/ejercicioUsuario.service';
 import { AppError } from '../middleware/errorHandler';
 
-const ejercicioService = new EjercicioService();
+const ejercicioUsuarioService = new EjercicioUsuarioService();
 
-export class EjercicioController {
+export class EjercicioUsuarioController {
   async getAll(req: Request, res: Response, next: NextFunction) {
     try {
       const diaId = req.query.diaId
@@ -17,7 +17,26 @@ export class EjercicioController {
         throw error;
       }
 
-      const ejercicios = await ejercicioService.getAll(diaId);
+      const ejercicios = await ejercicioUsuarioService.getAll(diaId);
+      res.json({
+        success: true,
+        data: ejercicios,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async getByRutinaId(req: Request, res: Response, next: NextFunction) {
+    try {
+      const rutinaId = parseInt(req.params.rutinaId);
+      if (isNaN(rutinaId)) {
+        const error: AppError = new Error('rutinaId inválido');
+        error.statusCode = 400;
+        throw error;
+      }
+
+      const ejercicios = await ejercicioUsuarioService.getByRutinaId(rutinaId);
       res.json({
         success: true,
         data: ejercicios,
@@ -36,7 +55,7 @@ export class EjercicioController {
         throw error;
       }
 
-      const ejercicio = await ejercicioService.getById(id);
+      const ejercicio = await ejercicioUsuarioService.getById(id);
       if (!ejercicio) {
         const error: AppError = new Error('Ejercicio no encontrado');
         error.statusCode = 404;
