@@ -18,6 +18,7 @@ model Semana {
   nombre           String
   dias             Dia[]
   ejercicioSemanas EjercicioSemana[]
+  sesiones         Sesion[]
   rutinaId         Int               @map("rutina_id")
   rutina           Rutina            @relation(fields: [rutinaId], references: [id], onDelete: Cascade)
 
@@ -34,6 +35,7 @@ model Dia {
   semanaId    Int                @map("semana_id")
   semana      Semana             @relation(fields: [semanaId], references: [id], onDelete: Cascade)
   ejercicios  EjercicioUsuario[]
+  sesiones    Sesion[]
 
   @@unique([semanaId, numero])
   @@map("dias")
@@ -101,7 +103,8 @@ model Usuario {
   telefono       String?
   supabaseUserId String?  @unique @map("supabase_user_id")
 
-  rutinas Rutina[]
+  rutinas  Rutina[]
+  sesiones Sesion[]
 
   @@map("usuarios")
 }
@@ -114,6 +117,7 @@ model Rutina {
   usuario     Usuario      @relation(fields: [usuarioId], references: [id_usuario], onDelete: Cascade)
   semanas     Semana[]
   shareTokens ShareToken[]
+  sesiones    Sesion[]
 
   @@map("rutinas")
 }
@@ -127,4 +131,22 @@ model ShareToken {
   createdAt DateTime @default(now()) @map("created_at")
 
   @@map("share_tokens")
+}
+
+model Sesion {
+  id                     Int      @id @default(autoincrement())
+  usuarioId              Int      @map("usuario_id")
+  rutinaId               Int      @map("rutina_id")
+  semanaId               Int      @map("semana_id")
+  diaId                  Int      @map("dia_id")
+  fecha                  DateTime @db.Date
+  duracion_minutos       Int
+  total_ejercicios       Int      @default(0) @map("total_ejercicios")
+  ejercicios_completados Int      @default(0) @map("ejercicios_completados")
+  usuario                Usuario  @relation(fields: [usuarioId], references: [id_usuario], onDelete: Cascade)
+  rutina                 Rutina   @relation(fields: [rutinaId], references: [id], onDelete: Cascade)
+  semana                 Semana   @relation(fields: [semanaId], references: [id], onDelete: Cascade)
+  dia                    Dia      @relation(fields: [diaId], references: [id], onDelete: Cascade)
+
+  @@map("sesiones")
 }

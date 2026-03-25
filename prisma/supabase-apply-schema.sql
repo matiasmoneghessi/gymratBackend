@@ -3,6 +3,7 @@
 -- ATENCIÓN: Borra las tablas existentes. Hacé backup si tenés datos.
 
 -- Eliminar tablas en orden por FKs
+DROP TABLE IF EXISTS "sesiones" CASCADE;
 DROP TABLE IF EXISTS "serie_detalles" CASCADE;
 DROP TABLE IF EXISTS "ejercicio_semanas" CASCADE;
 DROP TABLE IF EXISTS "ejercicio_usuario" CASCADE;
@@ -119,6 +120,20 @@ CREATE UNIQUE INDEX "dias_semana_id_numero_key"                 ON "dias"("seman
 CREATE UNIQUE INDEX "ejercicio_semanas_ejercicio_id_semana_id_key" ON "ejercicio_semanas"("ejercicio_id", "semana_id");
 CREATE UNIQUE INDEX "serie_detalles_ejercicio_semana_id_numero_serie_key" ON "serie_detalles"("ejercicio_semana_id", "numero_serie");
 
+CREATE TABLE "sesiones" (
+  "id"                     SERIAL       NOT NULL,
+  "usuario_id"             INTEGER      NOT NULL,
+  "rutina_id"              INTEGER      NOT NULL,
+  "semana_id"              INTEGER      NOT NULL,
+  "dia_id"                 INTEGER      NOT NULL,
+  "fecha"                  DATE         NOT NULL,
+  "duracion_minutos"       INTEGER      NOT NULL,
+  "total_ejercicios"       INTEGER      NOT NULL DEFAULT 0,
+  "ejercicios_completados" INTEGER      NOT NULL DEFAULT 0,
+
+  CONSTRAINT "sesiones_pkey" PRIMARY KEY ("id")
+);
+
 -- Foreign keys
 ALTER TABLE "rutinas"          ADD CONSTRAINT "rutinas_usuario_id_fkey"                       FOREIGN KEY ("usuario_id")             REFERENCES "usuarios"("id_usuario")        ON DELETE CASCADE  ON UPDATE CASCADE;
 ALTER TABLE "share_tokens"     ADD CONSTRAINT "share_tokens_rutina_id_fkey"                   FOREIGN KEY ("rutina_id")              REFERENCES "rutinas"("id")                 ON DELETE CASCADE  ON UPDATE CASCADE;
@@ -129,3 +144,7 @@ ALTER TABLE "ejercicio_usuario" ADD CONSTRAINT "ejercicio_usuario_catalogo_ejerc
 ALTER TABLE "ejercicio_semanas" ADD CONSTRAINT "ejercicio_semanas_ejercicio_id_fkey"          FOREIGN KEY ("ejercicio_id")           REFERENCES "ejercicio_usuario"("id")       ON DELETE CASCADE  ON UPDATE CASCADE;
 ALTER TABLE "ejercicio_semanas" ADD CONSTRAINT "ejercicio_semanas_semana_id_fkey"             FOREIGN KEY ("semana_id")              REFERENCES "semanas"("id")                 ON DELETE CASCADE  ON UPDATE CASCADE;
 ALTER TABLE "serie_detalles"   ADD CONSTRAINT "serie_detalles_ejercicio_semana_id_fkey"       FOREIGN KEY ("ejercicio_semana_id")    REFERENCES "ejercicio_semanas"("id")       ON DELETE CASCADE  ON UPDATE CASCADE;
+ALTER TABLE "sesiones"         ADD CONSTRAINT "sesiones_usuario_id_fkey"                    FOREIGN KEY ("usuario_id")             REFERENCES "usuarios"("id_usuario")        ON DELETE CASCADE  ON UPDATE CASCADE;
+ALTER TABLE "sesiones"         ADD CONSTRAINT "sesiones_rutina_id_fkey"                     FOREIGN KEY ("rutina_id")              REFERENCES "rutinas"("id")                 ON DELETE CASCADE  ON UPDATE CASCADE;
+ALTER TABLE "sesiones"         ADD CONSTRAINT "sesiones_semana_id_fkey"                     FOREIGN KEY ("semana_id")              REFERENCES "semanas"("id")                 ON DELETE CASCADE  ON UPDATE CASCADE;
+ALTER TABLE "sesiones"         ADD CONSTRAINT "sesiones_dia_id_fkey"                        FOREIGN KEY ("dia_id")                 REFERENCES "dias"("id")                    ON DELETE CASCADE  ON UPDATE CASCADE;

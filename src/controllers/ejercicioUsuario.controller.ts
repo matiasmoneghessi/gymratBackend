@@ -27,6 +27,25 @@ export class EjercicioUsuarioController {
     }
   }
 
+  async getByRutinaId(req: Request, res: Response, next: NextFunction) {
+    try {
+      const rutinaId = parseInt(req.params.rutinaId);
+      if (isNaN(rutinaId)) {
+        const error: AppError = new Error('rutinaId inválido');
+        error.statusCode = 400;
+        throw error;
+      }
+
+      const ejercicios = await ejercicioUsuarioService.getByRutinaId(rutinaId);
+      res.json({
+        success: true,
+        data: ejercicios,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
   async getById(req: Request, res: Response, next: NextFunction) {
     try {
       const id = parseInt(req.params.id);
