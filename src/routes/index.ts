@@ -8,6 +8,7 @@ import rutinaRoutes from './rutina.routes';
 import catalogoEjercicioRoutes from './catalogoEjercicio.routes';
 import serieDetalleRoutes from './serieDetalle.routes';
 import sesionRoutes from './sesion.routes';
+import stravaRoutes from './strava.routes';
 import { supabaseAuthMiddleware } from '../middleware/auth';
 import { EjercicioUsuarioController } from '../controllers/ejercicioUsuario.controller';
 
@@ -24,6 +25,7 @@ router.use('/usuarios', usuarioRoutes);
 router.use('/catalogo-ejercicios', catalogoEjercicioRoutes);
 router.use('/serie-detalles', serieDetalleRoutes);
 router.use('/sesiones', sesionRoutes);
+router.use('/strava', stravaRoutes);
 router.get('/ejercicios-rutina/:rutinaId', supabaseAuthMiddleware, (req, res, next) =>
   ejercicioUsuarioController.getByRutinaId(req, res, next),
 );

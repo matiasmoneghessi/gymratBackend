@@ -9,5 +9,6 @@ const controller = new SesionController();
 // POST /sesiones   → registrar nueva sesión
 router.get('/', supabaseAuthMiddleware, (req, res, next) => controller.getAll(req as any, res, next));
 router.post('/', supabaseAuthMiddleware, (req, res, next) => controller.create(req as any, res, next));
+router.delete('/:id', supabaseAuthMiddleware, (req, res, next) => controller.delete(req as any, res, next));
 
 export default router;

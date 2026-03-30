@@ -103,6 +103,11 @@ model Usuario {
   telefono       String?
   supabaseUserId String?  @unique @map("supabase_user_id")
 
+  stravaAthleteId      Int?      @map("strava_athlete_id")
+  stravaAccessToken    String?   @map("strava_access_token")
+  stravaRefreshToken   String?   @map("strava_refresh_token")
+  stravaTokenExpiresAt DateTime? @map("strava_token_expires_at")
+
   rutinas  Rutina[]
   sesiones Sesion[]
 

@@ -42,6 +42,16 @@ export class SesionService {
     return { id: sesion.id };
   }
 
+  async deleteById(sesionId: number, usuarioId: number): Promise<void> {
+    const sesion = await prisma.sesion.findUnique({ where: { id: sesionId } });
+    if (!sesion || sesion.usuarioId !== usuarioId) {
+      const error: Error & { statusCode?: number } = new Error('Sesión no encontrada');
+      error.statusCode = 404;
+      throw error;
+    }
+    await prisma.sesion.delete({ where: { id: sesionId } });
+  }
+
   async getByUsuario(usuarioId: number): Promise<SesionResumen[]> {
     const sesiones = await prisma.sesion.findMany({
       where: { usuarioId },
