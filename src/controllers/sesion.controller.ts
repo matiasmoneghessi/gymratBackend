@@ -37,29 +37,23 @@ export class SesionController {
         ejercicios: ejercicios ?? [],
       });
 
-      let stravaActivity: { activityId: number; activityUrl: string } | null = null;
+      // Responder al cliente inmediatamente sin esperar a Strava
+      res.status(201).json({ success: true, data: sesion });
 
+      // Sincronizar con Strava en background (no bloquea la respuesta)
       if (sync_strava === true) {
-        try {
-          stravaActivity = await stravaService.createActivityForSession(usuario.id_usuario, {
+        stravaService
+          .createActivityForSession(usuario.id_usuario, {
             rutinaId,
             semanaId,
             diaId,
             fecha,
             duracion_minutos,
+          })
+          .catch(() => {
+            // El error de Strava no afecta la sesión guardada
           });
-        } catch {
-          // El error de Strava no bloquea la sesión
-        }
       }
-
-      res.status(201).json({
-        success: true,
-        data: {
-          ...sesion,
-          ...(stravaActivity ? { strava: stravaActivity } : {}),
-        },
-      });
     } catch (error) {
       next(error);
     }
