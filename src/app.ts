@@ -12,6 +12,9 @@ dotenv.config();
 
 const app: Application = express();
 
+// Trust proxy (necesario para rate limiting correcto detrás de Render/Railway/etc.)
+app.set('trust proxy', 1);
+
 // Security headers
 app.use(helmet());
 
