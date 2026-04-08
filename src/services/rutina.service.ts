@@ -36,6 +36,47 @@ export interface CreateRutinaInput {
 
 const usuarioService = new UsuarioService();
 
+function computeMaxKg(kg: number | null, serieDetalles: { kg: number | null }[]): number | null {
+  const kgsFromSeries = serieDetalles.map((s) => s.kg).filter((k): k is number => k !== null);
+  if (kgsFromSeries.length === 0) return kg;
+  return Math.max(...kgsFromSeries);
+}
+
+function addMaxKgToRutina<T extends {
+  semanas: Array<{
+    dias: Array<{
+      ejercicios: Array<{
+        ejercicioSemanas: Array<{
+          kg: number | null;
+          serieDetalles: { kg: number | null }[];
+          [key: string]: unknown;
+        }>;
+        [key: string]: unknown;
+      }>;
+      [key: string]: unknown;
+    }>;
+    [key: string]: unknown;
+  }>;
+  [key: string]: unknown;
+}>(rutina: T): T {
+  return {
+    ...rutina,
+    semanas: rutina.semanas.map((semana) => ({
+      ...semana,
+      dias: semana.dias.map((dia) => ({
+        ...dia,
+        ejercicios: dia.ejercicios.map((ejercicio) => ({
+          ...ejercicio,
+          ejercicioSemanas: ejercicio.ejercicioSemanas.map((es) => ({
+            ...es,
+            maxKg: computeMaxKg(es.kg, es.serieDetalles),
+          })),
+        })),
+      })),
+    })),
+  };
+}
+
 export class RutinaService {
   async getByUsuarioId(supabaseUser: User) {
     const usuario = await usuarioService.getOrCreateFromSupabaseUser(supabaseUser);
@@ -63,6 +104,11 @@ export class RutinaService {
                   include: {
                     ejercicioSemanas: {
                       orderBy: { semanaId: 'asc' },
+                      include: {
+                        serieDetalles: {
+                          orderBy: { numero_serie: 'asc' },
+                        },
+                      },
                     },
                   },
                 },
@@ -77,7 +123,7 @@ export class RutinaService {
       return null;
     }
 
-    return rutina;
+    return addMaxKgToRutina(rutina);
   }
 
   async create(data: CreateRutinaInput, supabaseUser: User) {
@@ -349,7 +395,14 @@ export class RutinaService {
                   include: {
                     ejercicios: {
                       include: {
-                        ejercicioSemanas: { orderBy: { semanaId: 'asc' } },
+                        ejercicioSemanas: {
+                          orderBy: { semanaId: 'asc' },
+                          include: {
+                            serieDetalles: {
+                              orderBy: { numero_serie: 'asc' },
+                            },
+                          },
+                        },
                       },
                     },
                   },
@@ -365,7 +418,8 @@ export class RutinaService {
       return null;
     }
 
-    return shareToken.rutina;
+    if (!shareToken.rutina) return null;
+    return addMaxKgToRutina(shareToken.rutina);
   }
 
   async cloneFromToken(token: string, supabaseUser: User) {
