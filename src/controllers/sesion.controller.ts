@@ -44,7 +44,7 @@ export class SesionController {
 
       // Sincronizar con Strava en background (no bloquea la respuesta)
       if (sync_strava === true || sync_strava === 'true' || sync_strava === 1) {
-        logger.info(`Sincronizando sesión ${sesion.id_sesion} con Strava para usuario ${usuario.id_usuario}`);
+        logger.info(`Sincronizando sesión ${sesion.id} con Strava para usuario ${usuario.id_usuario}`);
         stravaService
           .createActivityForSession(usuario.id_usuario, {
             rutinaId,
