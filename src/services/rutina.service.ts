@@ -42,7 +42,7 @@ function computeMaxKg(kg: number | null, serieDetalles: { kg: number | null }[])
   return Math.max(...kgsFromSeries);
 }
 
-function addMaxKgToRutina<T extends {
+function addMaxKgToRutina(rutina: {
   semanas: Array<{
     dias: Array<{
       ejercicios: Array<{
@@ -58,7 +58,7 @@ function addMaxKgToRutina<T extends {
     [key: string]: unknown;
   }>;
   [key: string]: unknown;
-}>(rutina: T): T {
+}) {
   return {
     ...rutina,
     semanas: rutina.semanas.map((semana) => ({
@@ -67,9 +67,9 @@ function addMaxKgToRutina<T extends {
         ...dia,
         ejercicios: dia.ejercicios.map((ejercicio) => ({
           ...ejercicio,
-          ejercicioSemanas: ejercicio.ejercicioSemanas.map((es) => ({
+          ejercicioSemanas: ejercicio.ejercicioSemanas.map(({ serieDetalles, ...es }) => ({
             ...es,
-            maxKg: computeMaxKg(es.kg, es.serieDetalles),
+            maxKg: computeMaxKg(es.kg, serieDetalles),
           })),
         })),
       })),
