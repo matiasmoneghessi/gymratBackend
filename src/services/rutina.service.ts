@@ -42,34 +42,19 @@ function computeMaxKg(kg: number | null, serieDetalles: { kg: number | null }[])
   return Math.max(...kgsFromSeries);
 }
 
-function addMaxKgToRutina(rutina: {
-  semanas: Array<{
-    dias: Array<{
-      ejercicios: Array<{
-        ejercicioSemanas: Array<{
-          kg: number | null;
-          serieDetalles: { kg: number | null }[];
-          [key: string]: unknown;
-        }>;
-        [key: string]: unknown;
-      }>;
-      [key: string]: unknown;
-    }>;
-    [key: string]: unknown;
-  }>;
-  [key: string]: unknown;
-}) {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function addMaxKgToRutina(rutina: any): any {
   return {
     ...rutina,
-    semanas: rutina.semanas.map((semana) => ({
+    semanas: rutina.semanas.map((semana: any) => ({
       ...semana,
-      dias: semana.dias.map((dia) => ({
+      dias: semana.dias.map((dia: any) => ({
         ...dia,
-        ejercicios: dia.ejercicios.map((ejercicio) => ({
+        ejercicios: dia.ejercicios.map((ejercicio: any) => ({
           ...ejercicio,
-          ejercicioSemanas: ejercicio.ejercicioSemanas.map(({ serieDetalles, ...es }) => ({
+          ejercicioSemanas: ejercicio.ejercicioSemanas.map(({ serieDetalles, ...es }: any) => ({
             ...es,
-            maxKg: computeMaxKg(es.kg, serieDetalles),
+            maxKg: computeMaxKg(es.kg, serieDetalles ?? []),
           })),
         })),
       })),
@@ -381,7 +366,7 @@ export class RutinaService {
     return shareToken.token;
   }
 
-  async getRutinaByToken(token: string) {
+  private async fetchRutinaRawByToken(token: string) {
     const shareToken = await prisma.shareToken.findUnique({
       where: { token },
       include: {
@@ -418,12 +403,17 @@ export class RutinaService {
       return null;
     }
 
-    if (!shareToken.rutina) return null;
-    return addMaxKgToRutina(shareToken.rutina);
+    return shareToken.rutina;
+  }
+
+  async getRutinaByToken(token: string) {
+    const rutina = await this.fetchRutinaRawByToken(token);
+    if (!rutina) return null;
+    return addMaxKgToRutina(rutina);
   }
 
   async cloneFromToken(token: string, supabaseUser: User) {
-    const rutina = await this.getRutinaByToken(token);
+    const rutina = await this.fetchRutinaRawByToken(token);
     if (!rutina) return null;
 
     const usuario = await usuarioService.getOrCreateFromSupabaseUser(supabaseUser);
