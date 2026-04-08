@@ -4,6 +4,7 @@ import { UsuarioService } from '../services/usuario.service';
 import { StravaService } from '../services/strava.service';
 import { AppError } from '../middleware/errorHandler';
 import type { AuthenticatedRequest } from '../middleware/auth';
+import { logger } from '../utils/logger';
 
 const sesionService = new SesionService();
 const usuarioService = new UsuarioService();
@@ -21,6 +22,7 @@ export class SesionController {
       const usuario = await usuarioService.getOrCreateFromSupabaseUser(req.supabaseUser);
 
       const { rutinaId, semanaId, diaId, fecha, duracion_minutos, ejercicios, sync_strava } = req.body;
+      logger.info(`POST /api/sesiones - sync_strava: ${JSON.stringify(sync_strava)} (${typeof sync_strava})`);
 
       if (!rutinaId || !semanaId || !diaId || !fecha || duracion_minutos == null) {
         const error: AppError = new Error('Faltan campos requeridos: rutinaId, semanaId, diaId, fecha, duracion_minutos');
@@ -37,29 +39,28 @@ export class SesionController {
         ejercicios: ejercicios ?? [],
       });
 
-      let stravaActivity: { activityId: number; activityUrl: string } | null = null;
+      // Responder al cliente inmediatamente sin esperar a Strava
+      res.status(201).json({ success: true, data: sesion });
 
-      if (sync_strava === true) {
-        try {
-          stravaActivity = await stravaService.createActivityForSession(usuario.id_usuario, {
+      // Sincronizar con Strava en background (no bloquea la respuesta)
+      if (sync_strava === true || sync_strava === 'true' || sync_strava === 1) {
+        logger.info(`Sincronizando sesión ${sesion.id_sesion} con Strava para usuario ${usuario.id_usuario}`);
+        stravaService
+          .createActivityForSession(usuario.id_usuario, {
             rutinaId,
             semanaId,
             diaId,
             fecha,
             duracion_minutos,
+          })
+          .then((activity) => {
+            if (activity) logger.info(`Strava activity creada: ${activity.activityId}`);
+            else logger.info(`Strava: usuario sin token conectado`);
+          })
+          .catch((err: unknown) => {
+            logger.info(`Strava error (sesión ya guardada): ${err instanceof Error ? err.message : String(err)}`);
           });
-        } catch {
-          // El error de Strava no bloquea la sesión
-        }
       }
-
-      res.status(201).json({
-        success: true,
-        data: {
-          ...sesion,
-          ...(stravaActivity ? { strava: stravaActivity } : {}),
-        },
-      });
     } catch (error) {
       next(error);
     }
