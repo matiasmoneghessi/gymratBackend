@@ -15,6 +15,10 @@ import { EjercicioUsuarioController } from '../controllers/ejercicioUsuario.cont
 const router = Router();
 const ejercicioUsuarioController = new EjercicioUsuarioController();
 
+router.get('/health', (_req, res) => {
+  res.json({ ok: true });
+});
+
 router.use('/rutinas', rutinaRoutes);
 router.use('/semanas', semanaRoutes);
 router.use('/dias', diaRoutes);
