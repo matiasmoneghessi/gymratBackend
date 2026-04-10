@@ -27,6 +27,16 @@ export class SerieDetalleService {
       })),
     });
 
+    // Actualizar ejercicioSemana.kg con el kg máximo de las series
+    const kgsValidos = series.map((s) => s.kg).filter((k): k is number => k !== null && k !== undefined);
+    if (kgsValidos.length > 0) {
+      const maxKg = Math.max(...kgsValidos);
+      await prisma.ejercicioSemana.update({
+        where: { id: ejercicioSemanaId },
+        data: { kg: maxKg },
+      });
+    }
+
     return this.getByEjercicioSemana(ejercicioSemanaId);
   }
 
