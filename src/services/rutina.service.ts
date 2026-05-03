@@ -1,6 +1,7 @@
 import prisma from '../utils/prisma';
 import { UsuarioService } from './usuario.service';
 import type { User } from '@supabase/supabase-js';
+import type { Prisma } from '@prisma/client';
 
 export interface CreateEjercicioSemanaInput {
   semanaNumero: number;
@@ -11,7 +12,7 @@ export interface CreateEjercicioSemanaInput {
 }
 
 export interface CreateEjercicioInput {
-  nombre: string;
+  catalogoEjercicioId: number;
   codigo?: string | null;
   ejercicioSemanas: CreateEjercicioSemanaInput[];
 }
@@ -35,6 +36,20 @@ export interface CreateRutinaInput {
 }
 
 const usuarioService = new UsuarioService();
+
+type RutinaWithSemanasYDias = Prisma.RutinaGetPayload<{
+  include: {
+    semanas: {
+      include: {
+        dias: {
+          include: {
+            ejercicios: true;
+          };
+        };
+      };
+    };
+  };
+}>;
 
 function computeMaxKg(kg: number | null, serieDetalles: { kg: number | null }[]): number | null {
   const kgsFromSeries = serieDetalles.map((s) => s.kg).filter((k): k is number => k !== null);
@@ -87,6 +102,7 @@ export class RutinaService {
               include: {
                 ejercicios: {
                   include: {
+                    catalogoEjercicio: true,
                     ejercicioSemanas: {
                       orderBy: { semanaId: 'asc' },
                       include: {
@@ -115,7 +131,7 @@ export class RutinaService {
     const usuario = await usuarioService.getOrCreateFromSupabaseUser(supabaseUser);
 
     // 1. Crear rutina con semanas, días y ejercicios (nested)
-    const rutina = await prisma.rutina.create({
+    const rutina: RutinaWithSemanasYDias = await prisma.rutina.create({
       data: {
         nombre: data.nombre,
         usuarioId: usuario.id_usuario,
@@ -132,7 +148,7 @@ export class RutinaService {
                 activacion: dia.activacion || null,
                 ejercicios: {
                   create: dia.ejercicios.map((ej) => ({
-                    nombre: ej.nombre,
+                    catalogoEjercicioId: ej.catalogoEjercicioId,
                     codigo: ej.codigo || null,
                   })),
                 },
@@ -244,71 +260,224 @@ export class RutinaService {
       return null;
     }
 
-    // Actualizar nombre
-    await prisma.rutina.update({
-      where: { id },
-      data: { nombre: data.nombre },
-    });
-
-    // Borrar semanas (cascada elimina dias, ejercicios, ejercicioSemanas)
-    await prisma.semana.deleteMany({ where: { rutinaId: id } });
-
-    // Recrear semanas con la nueva estructura
-    for (let sIdx = 0; sIdx < data.semanas.length; sIdx++) {
-      const semanaInput = data.semanas[sIdx];
-      const semana = await prisma.semana.create({
-        data: {
-          rutinaId: id,
-          numero: sIdx + 1,
-          nombre: semanaInput.nombre,
-          tipo_esfuerzo: semanaInput.tipo_esfuerzo,
-        },
+    await prisma.$transaction(async (tx) => {
+      await tx.rutina.update({
+        where: { id },
+        data: { nombre: data.nombre },
       });
 
-      for (let dIdx = 0; dIdx < semanaInput.dias.length; dIdx++) {
-        const diaInput = semanaInput.dias[dIdx];
-        const dia = await prisma.dia.create({
-          data: {
-            semanaId: semana.id,
-            numero: dIdx + 1,
-            nombre: diaInput.nombre,
-            movilidad: diaInput.movilidad || null,
-            activacion: diaInput.activacion || null,
+      const semanasExistentes = await tx.semana.findMany({
+        where: { rutinaId: id },
+        include: {
+          dias: {
+            include: {
+              ejercicios: {
+                include: {
+                  ejercicioSemanas: true,
+                },
+              },
+            },
+            orderBy: { numero: 'asc' },
+          },
+        },
+        orderBy: { numero: 'asc' },
+      });
+
+      const semanaExistenteByNumero = new Map(semanasExistentes.map((s) => [s.numero, s]));
+      const semanaNumerosEntrantes = new Set(data.semanas.map((_, idx) => idx + 1));
+      const semanasRemovidas = semanasExistentes.filter((s) => !semanaNumerosEntrantes.has(s.numero));
+
+      if (semanasRemovidas.length > 0) {
+        await tx.sesion.deleteMany({
+          where: {
+            rutinaId: id,
+            semanaId: { in: semanasRemovidas.map((s) => s.id) },
           },
         });
+        await tx.semana.deleteMany({
+          where: { id: { in: semanasRemovidas.map((s) => s.id) } },
+        });
+      }
 
-        for (const ejInput of diaInput.ejercicios) {
-          const ejercicio = await prisma.ejercicioUsuario.create({
+      for (let sIdx = 0; sIdx < data.semanas.length; sIdx++) {
+        const numero = sIdx + 1;
+        const semanaInput = data.semanas[sIdx];
+        const semanaExistente = semanaExistenteByNumero.get(numero);
+
+        if (semanaExistente) {
+          await tx.semana.update({
+            where: { id: semanaExistente.id },
             data: {
-              diaId: dia.id,
-              nombre: ejInput.nombre,
-              codigo: ejInput.codigo || null,
+              nombre: semanaInput.nombre,
+              tipo_esfuerzo: semanaInput.tipo_esfuerzo,
             },
           });
+        } else {
+          await tx.semana.create({
+            data: {
+              rutinaId: id,
+              numero,
+              nombre: semanaInput.nombre,
+              tipo_esfuerzo: semanaInput.tipo_esfuerzo,
+            },
+          });
+        }
+      }
 
-          if (ejInput.ejercicioSemanas && ejInput.ejercicioSemanas.length > 0) {
-            // Obtener IDs de semanas creadas en esta rutina
-            const semanasCreadas = await prisma.semana.findMany({
-              where: { rutinaId: id },
-              select: { id: true, numero: true },
+      const semanasActuales = await tx.semana.findMany({
+        where: { rutinaId: id },
+        include: {
+          dias: {
+            include: {
+              ejercicios: {
+                include: {
+                  ejercicioSemanas: true,
+                },
+              },
+            },
+            orderBy: { numero: 'asc' },
+          },
+        },
+        orderBy: { numero: 'asc' },
+      });
+      const semanaActualByNumero = new Map(semanasActuales.map((s) => [s.numero, s]));
+      const semanaIdByNumero = new Map(semanasActuales.map((s) => [s.numero, s.id]));
+
+      for (let sIdx = 0; sIdx < data.semanas.length; sIdx++) {
+        const semanaNumero = sIdx + 1;
+        const semanaInput = data.semanas[sIdx];
+        const semanaActual = semanaActualByNumero.get(semanaNumero);
+        if (!semanaActual) continue;
+
+        const diaExistenteByNumero = new Map(semanaActual.dias.map((d) => [d.numero, d]));
+        const diaNumerosEntrantes = new Set(semanaInput.dias.map((_, idx) => idx + 1));
+        const diasRemovidos = semanaActual.dias.filter((d) => !diaNumerosEntrantes.has(d.numero));
+
+        if (diasRemovidos.length > 0) {
+          await tx.sesion.deleteMany({
+            where: {
+              rutinaId: id,
+              diaId: { in: diasRemovidos.map((d) => d.id) },
+            },
+          });
+          await tx.dia.deleteMany({
+            where: { id: { in: diasRemovidos.map((d) => d.id) } },
+          });
+        }
+
+        for (let dIdx = 0; dIdx < semanaInput.dias.length; dIdx++) {
+          const diaNumero = dIdx + 1;
+          const diaInput = semanaInput.dias[dIdx];
+          const diaExistente = diaExistenteByNumero.get(diaNumero);
+
+          let diaId: number;
+          let ejerciciosExistentes = diaExistente?.ejercicios ?? [];
+
+          if (diaExistente) {
+            const diaActualizado = await tx.dia.update({
+              where: { id: diaExistente.id },
+              data: {
+                nombre: diaInput.nombre,
+                movilidad: diaInput.movilidad || null,
+                activacion: diaInput.activacion || null,
+              },
+              include: {
+                ejercicios: {
+                  include: { ejercicioSemanas: true },
+                },
+              },
             });
-            const semanaIdByNumero = new Map(semanasCreadas.map((s) => [s.numero, s.id]));
+            diaId = diaActualizado.id;
+            ejerciciosExistentes = diaActualizado.ejercicios;
+          } else {
+            const diaCreado = await tx.dia.create({
+              data: {
+                semanaId: semanaActual.id,
+                numero: diaNumero,
+                nombre: diaInput.nombre,
+                movilidad: diaInput.movilidad || null,
+                activacion: diaInput.activacion || null,
+              },
+            });
+            diaId = diaCreado.id;
+            ejerciciosExistentes = [];
+          }
 
-            const esData = ejInput.ejercicioSemanas
-              .map((es) => {
-                const semanaId = semanaIdByNumero.get(es.semanaNumero);
-                if (!semanaId) return null;
-                return { ejercicioId: ejercicio.id, semanaId, kg: es.kg, reps: es.reps, series: es.series, tipo_reps: es.tipo_reps ?? 'reps' };
-              })
-              .filter((x): x is NonNullable<typeof x> => x !== null);
+          for (let eIdx = 0; eIdx < diaInput.ejercicios.length; eIdx++) {
+            const ejInput = diaInput.ejercicios[eIdx];
+            const ejercicioExistente = ejerciciosExistentes[eIdx];
 
-            if (esData.length > 0) {
-              await prisma.ejercicioSemana.createMany({ data: esData });
+            const ejercicio = ejercicioExistente
+              ? await tx.ejercicioUsuario.update({
+                  where: { id: ejercicioExistente.id },
+                  data: {
+                    catalogoEjercicioId: ejInput.catalogoEjercicioId,
+                    codigo: ejInput.codigo || null,
+                  },
+                })
+              : await tx.ejercicioUsuario.create({
+                  data: {
+                    diaId,
+                    catalogoEjercicioId: ejInput.catalogoEjercicioId,
+                    codigo: ejInput.codigo || null,
+                  },
+                });
+
+            const semanaIdsEntrantes = ejInput.ejercicioSemanas
+              .map((es) => semanaIdByNumero.get(es.semanaNumero))
+              .filter((semanaId): semanaId is number => !!semanaId);
+
+            for (const es of ejInput.ejercicioSemanas) {
+              const semanaId = semanaIdByNumero.get(es.semanaNumero);
+              if (!semanaId) continue;
+
+              await tx.ejercicioSemana.upsert({
+                where: {
+                  ejercicioId_semanaId: {
+                    ejercicioId: ejercicio.id,
+                    semanaId,
+                  },
+                },
+                update: {
+                  kg: es.kg,
+                  reps: es.reps,
+                  series: es.series,
+                  tipo_reps: es.tipo_reps ?? 'reps',
+                },
+                create: {
+                  ejercicioId: ejercicio.id,
+                  semanaId,
+                  kg: es.kg,
+                  reps: es.reps,
+                  series: es.series,
+                  tipo_reps: es.tipo_reps ?? 'reps',
+                },
+              });
             }
+
+            if (semanaIdsEntrantes.length > 0) {
+              await tx.ejercicioSemana.deleteMany({
+                where: {
+                  ejercicioId: ejercicio.id,
+                  semanaId: { notIn: semanaIdsEntrantes },
+                },
+              });
+            } else {
+              await tx.ejercicioSemana.deleteMany({
+                where: { ejercicioId: ejercicio.id },
+              });
+            }
+          }
+
+          const ejerciciosRemovidos = ejerciciosExistentes.slice(diaInput.ejercicios.length);
+          if (ejerciciosRemovidos.length > 0) {
+            await tx.ejercicioUsuario.deleteMany({
+              where: { id: { in: ejerciciosRemovidos.map((e) => e.id) } },
+            });
           }
         }
       }
-    }
+    });
 
     return prisma.rutina.findUnique({
       where: { id },
@@ -380,6 +549,7 @@ export class RutinaService {
                   include: {
                     ejercicios: {
                       include: {
+                        catalogoEjercicio: true,
                         ejercicioSemanas: {
                           orderBy: { semanaId: 'asc' },
                           include: {
@@ -418,7 +588,7 @@ export class RutinaService {
 
     const usuario = await usuarioService.getOrCreateFromSupabaseUser(supabaseUser);
 
-    const nueva = await prisma.rutina.create({
+    const nueva: RutinaWithSemanasYDias = await prisma.rutina.create({
       data: {
         nombre: rutina.nombre,
         usuarioId: usuario.id_usuario,
@@ -435,7 +605,7 @@ export class RutinaService {
                 activacion: dia.activacion,
                 ejercicios: {
                   create: dia.ejercicios.map((ej) => ({
-                    nombre: ej.nombre,
+                    catalogoEjercicioId: ej.catalogoEjercicioId,
                     codigo: ej.codigo,
                   })),
                 },
