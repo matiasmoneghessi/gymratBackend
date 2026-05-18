@@ -15,7 +15,7 @@ const ejercicioSemanaSchema = z.object({
 });
 
 const ejercicioSchema = z.object({
-  nombre: z.string().min(1).max(200),
+  catalogoEjercicioId: z.coerce.number().int().min(1),
   codigo: z.string().max(20).nullable().optional(),
   ejercicioSemanas: z.array(ejercicioSemanaSchema).min(1).max(52),
 });

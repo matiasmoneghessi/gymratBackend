@@ -1,6 +1,21 @@
 import OpenAI from 'openai';
 import { logger } from '../utils/logger';
+import { CatalogoEjercicioService } from './catalogoEjercicio.service';
 import type { CreateRutinaInput } from './rutina.service';
+
+const catalogoService = new CatalogoEjercicioService();
+
+interface AiEjercicio {
+  nombre: string;
+  codigo?: string | null;
+  ejercicioSemanas: {
+    semanaNumero: number;
+    kg: number | null;
+    reps: number;
+    series: number;
+    tipo_reps: string;
+  }[];
+}
 
 const SYSTEM_PROMPT = `Sos un asistente que interpreta archivos de rutinas de gimnasio y los convierte a JSON estructurado.
 
@@ -106,6 +121,51 @@ export class ImportService {
       throw new Error('El JSON generado no tiene la estructura esperada (falta nombre o semanas)');
     }
 
-    return parsed as CreateRutinaInput;
+    const parsedRutina = parsed as {
+      nombre: string;
+      semanas: {
+        nombre: string;
+        tipo_esfuerzo: string;
+        dias: {
+          nombre: string;
+          movilidad?: string | null;
+          activacion?: string | null;
+          ejercicios: AiEjercicio[];
+        }[];
+      }[];
+    };
+
+    const rutina: CreateRutinaInput = {
+      nombre: parsedRutina.nombre,
+      semanas: [],
+    };
+
+    for (const semana of parsedRutina.semanas) {
+      const dias: CreateRutinaInput['semanas'][number]['dias'] = [];
+      for (const dia of semana.dias) {
+        const ejercicios: CreateRutinaInput['semanas'][number]['dias'][number]['ejercicios'] = [];
+        for (const ej of dia.ejercicios) {
+          const entry = await catalogoService.create({ nombre: ej.nombre });
+          ejercicios.push({
+            catalogoEjercicioId: entry.id,
+            codigo: ej.codigo ?? null,
+            ejercicioSemanas: ej.ejercicioSemanas,
+          });
+        }
+        dias.push({
+          nombre: dia.nombre,
+          movilidad: dia.movilidad ?? null,
+          activacion: dia.activacion ?? null,
+          ejercicios,
+        });
+      }
+      rutina.semanas.push({
+        nombre: semana.nombre,
+        tipo_esfuerzo: semana.tipo_esfuerzo,
+        dias,
+      });
+    }
+
+    return rutina;
   }
 }

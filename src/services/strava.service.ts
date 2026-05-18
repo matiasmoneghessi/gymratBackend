@@ -184,7 +184,11 @@ export class StravaService {
           ejercicio: { diaId: sesion.diaId },
         },
         include: {
-          ejercicio: { select: { nombre: true } },
+          ejercicio: {
+            select: {
+              catalogoEjercicio: { select: { nombre: true } },
+            },
+          },
         },
         orderBy: { id: 'asc' },
       }),
@@ -193,7 +197,7 @@ export class StravaService {
     const activityName = [rutina?.nombre, dia?.nombre].filter(Boolean).join(' - ') || 'Entrenamiento';
 
     const ejerciciosParaDesc = ejercicioSemanas.map((es) => ({
-      nombre: es.ejercicio.nombre,
+      nombre: es.ejercicio.catalogoEjercicio.nombre,
       series: es.series,
       reps: es.reps,
       kg: es.kg,

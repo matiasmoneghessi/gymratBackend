@@ -1,4 +1,7 @@
 import { openai } from '../utils/openaiClient';
+import { CatalogoEjercicioService } from './catalogoEjercicio.service';
+
+const catalogoService = new CatalogoEjercicioService();
 
 const SYSTEM_PROMPT = `Eres un asistente especializado en procesar archivos de rutinas de gimnasio.
 El usuario te enviará el contenido crudo de un archivo (CSV, texto plano, tabla de Google Sheets u otro formato).
@@ -47,6 +50,16 @@ Reglas de interpretación:
 - Si el archivo tiene múltiples días por semana, creá un día por cada bloque.
 - Si el contenido es ilegible o no parece una rutina de gimnasio, devolvé: {"error": "No se pudo interpretar el archivo como una rutina de gimnasio."}`;
 
+// Resultado interno del AI (usa nombre string)
+interface AiEjercicio {
+  nombre: string;
+  codigo: string | null;
+  kg: number | null;
+  reps: number;
+  series: number;
+  tipo_reps: 'reps' | 'seg';
+}
+
 export interface ImportarRutinaResult {
   nombre: string;
   semanas: {
@@ -57,7 +70,7 @@ export interface ImportarRutinaResult {
       movilidad: string | null;
       activacion: string | null;
       ejercicios: {
-        nombre: string;
+        catalogoEjercicioId: number;
         codigo: string | null;
         kg: number | null;
         reps: number;
@@ -97,6 +110,25 @@ export class ImportarService {
 
     if (!parsed.nombre || !Array.isArray(parsed.semanas)) {
       throw new Error('El JSON devuelto no tiene el formato esperado.');
+    }
+
+    // Resolver nombres de ejercicios a IDs del catálogo (upsert)
+    for (const semana of parsed.semanas) {
+      for (const dia of semana.dias) {
+        const ejerciciosResueltos = [];
+        for (const ej of dia.ejercicios as AiEjercicio[]) {
+          const entry = await catalogoService.create({ nombre: ej.nombre });
+          ejerciciosResueltos.push({
+            catalogoEjercicioId: entry.id,
+            codigo: ej.codigo,
+            kg: ej.kg,
+            reps: ej.reps,
+            series: ej.series,
+            tipo_reps: ej.tipo_reps,
+          });
+        }
+        dia.ejercicios = ejerciciosResueltos;
+      }
     }
 
     return parsed as ImportarRutinaResult;
