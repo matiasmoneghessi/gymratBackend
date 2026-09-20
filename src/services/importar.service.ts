@@ -1,4 +1,5 @@
-import { openai } from '../utils/openaiClient';
+import { normalizeFileContent } from '../utils/fileContentParser';
+import { generateTextWithVertexAI } from '../utils/vertexAIClient';
 import { CatalogoEjercicioService } from './catalogoEjercicio.service';
 
 const catalogoService = new CatalogoEjercicioService();
@@ -81,28 +82,30 @@ export interface ImportarRutinaResult {
   }[];
 }
 
-export class ImportarService {
-  async parsearRutina(contenido: string, fileName: string): Promise<ImportarRutinaResult> {
-    const userMessage = `Nombre del archivo: ${fileName}\n\nContenido:\n${contenido.slice(0, 12000)}`;
-
-    const completion = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
-      messages: [
-        { role: 'system', content: SYSTEM_PROMPT },
-        { role: 'user', content: userMessage },
-      ],
-      temperature: 0.1,
-      max_tokens: 4096,
-    });
-
-    const raw = completion.choices[0]?.message?.content?.trim() ?? '';
-
-    let parsed: any;
-    try {
-      parsed = JSON.parse(raw);
-    } catch {
-      throw new Error('La IA no devolvió un JSON válido. Intentá de nuevo.');
+function parseJsonResponse(raw: string): any {
+  try {
+    return JSON.parse(raw);
+  } catch {
+    const match = raw.match(/```(?:json)?\s*([\s\S]*?)```/);
+    if (match) {
+      return JSON.parse(match[1].trim());
     }
+    throw new Error('La IA no devolvió un JSON válido. Intentá de nuevo.');
+  }
+}
+
+export class ImportarService {
+  async parsearRutina(
+    contenido: string,
+    fileName: string,
+    encoding: 'text' | 'base64' = 'text',
+    mimeType?: string,
+  ): Promise<ImportarRutinaResult> {
+    const texto = normalizeFileContent(contenido, fileName, encoding, mimeType);
+    const userMessage = `Nombre del archivo: ${fileName}\n\nContenido:\n${texto.slice(0, 12000)}`;
+
+    const raw = await generateTextWithVertexAI(SYSTEM_PROMPT, userMessage);
+    const parsed = parseJsonResponse(raw);
 
     if (parsed.error) {
       throw new Error(parsed.error);

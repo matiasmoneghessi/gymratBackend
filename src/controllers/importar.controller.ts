@@ -8,7 +8,7 @@ const importarService = new ImportarService();
 export class ImportarController {
   async parsearRutina(req: AuthenticatedRequest, res: Response, next: NextFunction) {
     try {
-      const { contenido, fileName } = req.body;
+      const { contenido, fileName, encoding, mimeType } = req.body;
 
       if (!contenido || typeof contenido !== 'string') {
         const error: AppError = new Error('Falta el campo "contenido" con el texto del archivo.');
@@ -16,13 +16,19 @@ export class ImportarController {
         throw error;
       }
 
-      if (contenido.trim().length < 10) {
+      const fileEncoding = encoding === 'base64' ? 'base64' : 'text';
+      if (fileEncoding === 'text' && contenido.trim().length < 10) {
         const error: AppError = new Error('El contenido del archivo está vacío o es demasiado corto.');
         error.statusCode = 400;
         throw error;
       }
 
-      const rutina = await importarService.parsearRutina(contenido, fileName ?? 'archivo');
+      const rutina = await importarService.parsearRutina(
+        contenido,
+        fileName ?? 'archivo',
+        fileEncoding,
+        typeof mimeType === 'string' ? mimeType : undefined,
+      );
       res.json({ success: true, data: rutina });
     } catch (error: any) {
       if (!error.statusCode) error.statusCode = 500;

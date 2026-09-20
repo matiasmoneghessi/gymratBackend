@@ -21,8 +21,15 @@ const tokenLimiter = rateLimit({
   message: { success: false, error: { message: 'Demasiadas solicitudes. Intenta más tarde.' } },
 });
 
+// Rate limit estricto para el endpoint de importación con IA (llamadas costosas a Vertex AI)
+const importarLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  message: { success: false, error: { message: 'Demasiadas solicitudes de importación. Intenta más tarde.' } },
+});
+
 // POST /rutinas/importar  → procesa contenido de archivo con IA y devuelve JSON de rutina
-router.post('/importar', supabaseAuthMiddleware, (req, res, next) =>
+router.post('/importar', supabaseAuthMiddleware, importarLimiter, (req, res, next) =>
   importarController.parsearRutina(req as any, res, next),
 );
 
