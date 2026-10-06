@@ -27,39 +27,41 @@ model Semana {
 }
 
 model Dia {
-  id          Int                @id @default(autoincrement())
-  numero      Int
-  nombre      String
-  movilidad   String?            @db.Text
-  activacion  String?            @db.Text
-  semanaId    Int                @map("semana_id")
-  semana      Semana             @relation(fields: [semanaId], references: [id], onDelete: Cascade)
-  ejercicios  EjercicioUsuario[]
-  sesiones    Sesion[]
+  id         Int                @id @default(autoincrement())
+  numero     Int
+  nombre     String
+  movilidad  String?            @db.Text
+  activacion String?            @db.Text
+  semanaId   Int                @map("semana_id")
+  semana     Semana             @relation(fields: [semanaId], references: [id], onDelete: Cascade)
+  ejercicios EjercicioUsuario[]
+  sesiones   Sesion[]
 
   @@unique([semanaId, numero])
   @@map("dias")
 }
 
 model CatalogoEjercicio {
-  id          Int                @id @default(autoincrement())
-  nombre      String             @unique
-  descripcion String?            @db.Text
-  video       String?            @db.Text
-  imagen      String?            @db.Text
-  ejercicios  EjercicioUsuario[]
+  id               Int                @id @default(autoincrement())
+  nombre           String             @unique
+  descripcion      String?            @db.Text
+  video            String?            @db.Text
+  imagen           String?            @db.Text
+  ejercicios       EjercicioUsuario[]
+  sesionEjercicios SesionEjercicio[]
 
   @@map("catalogo_ejercicios")
 }
 
 model EjercicioUsuario {
-  id                  Int                @id @default(autoincrement())
+  id                  Int               @id @default(autoincrement())
   codigo              String?
-  diaId               Int                @map("dia_id")
-  catalogoEjercicioId Int                @map("catalogo_ejercicio_id")
-  dia                 Dia                @relation(fields: [diaId], references: [id], onDelete: Cascade)
-  catalogoEjercicio   CatalogoEjercicio  @relation(fields: [catalogoEjercicioId], references: [id])
+  diaId               Int               @map("dia_id")
+  catalogoEjercicioId Int               @map("catalogo_ejercicio_id")
+  dia                 Dia               @relation(fields: [diaId], references: [id], onDelete: Cascade)
+  catalogoEjercicio   CatalogoEjercicio @relation(fields: [catalogoEjercicioId], references: [id])
   ejercicioSemanas    EjercicioSemana[]
+  sesionEjercicios    SesionEjercicio[]
 
   @@map("ejercicio_usuario")
 }
@@ -93,14 +95,14 @@ model SerieDetalle {
 }
 
 model Usuario {
-  id_usuario     Int      @id @default(autoincrement()) @map("id_usuario")
-  usuario        String   @unique
+  id_usuario     Int     @id @default(autoincrement()) @map("id_usuario")
+  usuario        String  @unique
   password       String?
   nombre         String
   nivel          Int
-  email          String   @unique
+  email          String  @unique
   telefono       String?
-  supabaseUserId String?  @unique @map("supabase_user_id")
+  supabaseUserId String? @unique @map("supabase_user_id")
 
   stravaAthleteId      Int?      @map("strava_athlete_id")
   stravaAccessToken    String?   @map("strava_access_token")
@@ -114,9 +116,9 @@ model Usuario {
 }
 
 model Rutina {
-  id        Int      @id @default(autoincrement())
+  id        Int    @id @default(autoincrement())
   nombre    String
-  usuarioId Int      @map("usuario_id")
+  usuarioId Int    @map("usuario_id")
 
   usuario     Usuario      @relation(fields: [usuarioId], references: [id_usuario], onDelete: Cascade)
   semanas     Semana[]
@@ -138,19 +140,52 @@ model ShareToken {
 }
 
 model Sesion {
-  id                     Int      @id @default(autoincrement())
-  usuarioId              Int      @map("usuario_id")
-  rutinaId               Int      @map("rutina_id")
-  semanaId               Int      @map("semana_id")
-  diaId                  Int      @map("dia_id")
-  fecha                  DateTime @db.Date
+  id                     Int               @id @default(autoincrement())
+  usuarioId              Int               @map("usuario_id")
+  rutinaId               Int               @map("rutina_id")
+  semanaId               Int               @map("semana_id")
+  diaId                  Int               @map("dia_id")
+  fecha                  DateTime          @db.Date
   duracion_minutos       Int
-  total_ejercicios       Int      @default(0) @map("total_ejercicios")
-  ejercicios_completados Int      @default(0) @map("ejercicios_completados")
-  usuario                Usuario  @relation(fields: [usuarioId], references: [id_usuario], onDelete: Cascade)
-  rutina                 Rutina   @relation(fields: [rutinaId], references: [id], onDelete: Cascade)
-  semana                 Semana   @relation(fields: [semanaId], references: [id], onDelete: Cascade)
-  dia                    Dia      @relation(fields: [diaId], references: [id], onDelete: Cascade)
+  total_ejercicios       Int               @default(0) @map("total_ejercicios")
+  ejercicios_completados Int               @default(0) @map("ejercicios_completados")
+  usuario                Usuario           @relation(fields: [usuarioId], references: [id_usuario], onDelete: Cascade)
+  rutina                 Rutina            @relation(fields: [rutinaId], references: [id], onDelete: Cascade)
+  semana                 Semana            @relation(fields: [semanaId], references: [id], onDelete: Cascade)
+  dia                    Dia               @relation(fields: [diaId], references: [id], onDelete: Cascade)
+  ejercicios             SesionEjercicio[]
 
   @@map("sesiones")
+}
+
+// Snapshot de cada ejercicio registrado en una sesión. Guarda el catalogo_ejercicio_id
+// resuelto al crear la sesión para que el historial no cambie si luego se edita la rutina.
+model SesionEjercicio {
+  id                  Int               @id @default(autoincrement())
+  sesionId            Int               @map("sesion_id")
+  ejercicioId         Int?              @map("ejercicio_id")
+  catalogoEjercicioId Int               @map("catalogo_ejercicio_id")
+  orden               Int
+  completado          Boolean           @default(false)
+  sesion              Sesion            @relation(fields: [sesionId], references: [id], onDelete: Cascade)
+  ejercicio           EjercicioUsuario? @relation(fields: [ejercicioId], references: [id], onDelete: SetNull)
+  catalogoEjercicio   CatalogoEjercicio @relation(fields: [catalogoEjercicioId], references: [id])
+  series              SesionSerie[]
+
+  @@index([sesionId])
+  @@index([catalogoEjercicioId])
+  @@map("sesion_ejercicios")
+}
+
+model SesionSerie {
+  id                Int             @id @default(autoincrement())
+  sesionEjercicioId Int             @map("sesion_ejercicio_id")
+  numero_serie      Int
+  kg                Float?
+  reps              Int
+  completada        Boolean         @default(false)
+  sesionEjercicio   SesionEjercicio @relation(fields: [sesionEjercicioId], references: [id], onDelete: Cascade)
+
+  @@unique([sesionEjercicioId, numero_serie])
+  @@map("sesion_series")
 }
