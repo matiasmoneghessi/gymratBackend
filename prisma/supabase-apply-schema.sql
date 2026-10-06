@@ -3,6 +3,8 @@
 -- ATENCIÓN: Borra las tablas existentes. Hacé backup si tenés datos.
 
 -- Eliminar tablas en orden por FKs
+DROP TABLE IF EXISTS "sesion_series" CASCADE;
+DROP TABLE IF EXISTS "sesion_ejercicios" CASCADE;
 DROP TABLE IF EXISTS "sesiones" CASCADE;
 DROP TABLE IF EXISTS "serie_detalles" CASCADE;
 DROP TABLE IF EXISTS "ejercicio_semanas" CASCADE;
@@ -134,6 +136,32 @@ CREATE TABLE "sesiones" (
   CONSTRAINT "sesiones_pkey" PRIMARY KEY ("id")
 );
 
+CREATE TABLE "sesion_ejercicios" (
+  "id"                    SERIAL  NOT NULL,
+  "sesion_id"             INTEGER NOT NULL,
+  "ejercicio_id"          INTEGER,
+  "catalogo_ejercicio_id" INTEGER NOT NULL,
+  "orden"                 INTEGER NOT NULL,
+  "completado"            BOOLEAN NOT NULL DEFAULT false,
+
+  CONSTRAINT "sesion_ejercicios_pkey" PRIMARY KEY ("id")
+);
+
+CREATE TABLE "sesion_series" (
+  "id"                  SERIAL           NOT NULL,
+  "sesion_ejercicio_id" INTEGER          NOT NULL,
+  "numero_serie"        INTEGER          NOT NULL,
+  "kg"                  DOUBLE PRECISION,
+  "reps"                INTEGER          NOT NULL,
+  "completada"          BOOLEAN          NOT NULL DEFAULT false,
+
+  CONSTRAINT "sesion_series_pkey" PRIMARY KEY ("id")
+);
+
+CREATE INDEX "sesion_ejercicios_sesion_id_idx"             ON "sesion_ejercicios"("sesion_id");
+CREATE INDEX "sesion_ejercicios_catalogo_ejercicio_id_idx" ON "sesion_ejercicios"("catalogo_ejercicio_id");
+CREATE UNIQUE INDEX "sesion_series_sesion_ejercicio_id_numero_serie_key" ON "sesion_series"("sesion_ejercicio_id", "numero_serie");
+
 -- Foreign keys
 ALTER TABLE "rutinas"          ADD CONSTRAINT "rutinas_usuario_id_fkey"                       FOREIGN KEY ("usuario_id")             REFERENCES "usuarios"("id_usuario")        ON DELETE CASCADE  ON UPDATE CASCADE;
 ALTER TABLE "share_tokens"     ADD CONSTRAINT "share_tokens_rutina_id_fkey"                   FOREIGN KEY ("rutina_id")              REFERENCES "rutinas"("id")                 ON DELETE CASCADE  ON UPDATE CASCADE;
@@ -148,3 +176,7 @@ ALTER TABLE "sesiones"         ADD CONSTRAINT "sesiones_usuario_id_fkey"        
 ALTER TABLE "sesiones"         ADD CONSTRAINT "sesiones_rutina_id_fkey"                     FOREIGN KEY ("rutina_id")              REFERENCES "rutinas"("id")                 ON DELETE CASCADE  ON UPDATE CASCADE;
 ALTER TABLE "sesiones"         ADD CONSTRAINT "sesiones_semana_id_fkey"                     FOREIGN KEY ("semana_id")              REFERENCES "semanas"("id")                 ON DELETE CASCADE  ON UPDATE CASCADE;
 ALTER TABLE "sesiones"         ADD CONSTRAINT "sesiones_dia_id_fkey"                        FOREIGN KEY ("dia_id")                 REFERENCES "dias"("id")                    ON DELETE CASCADE  ON UPDATE CASCADE;
+ALTER TABLE "sesion_ejercicios" ADD CONSTRAINT "sesion_ejercicios_sesion_id_fkey"           FOREIGN KEY ("sesion_id")              REFERENCES "sesiones"("id")                ON DELETE CASCADE  ON UPDATE CASCADE;
+ALTER TABLE "sesion_ejercicios" ADD CONSTRAINT "sesion_ejercicios_ejercicio_id_fkey"        FOREIGN KEY ("ejercicio_id")           REFERENCES "ejercicio_usuario"("id")       ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "sesion_ejercicios" ADD CONSTRAINT "sesion_ejercicios_catalogo_ejercicio_id_fkey" FOREIGN KEY ("catalogo_ejercicio_id") REFERENCES "catalogo_ejercicios"("id")     ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "sesion_series"    ADD CONSTRAINT "sesion_series_sesion_ejercicio_id_fkey"      FOREIGN KEY ("sesion_ejercicio_id")    REFERENCES "sesion_ejercicios"("id")       ON DELETE CASCADE  ON UPDATE CASCADE;
